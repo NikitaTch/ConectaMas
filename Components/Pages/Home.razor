@@ -1,0 +1,188 @@
+@page "/"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>Conecta+ | Videollamadas accesibles</PageTitle>
+
+<main class="app-frame">
+    @if (screen == View.Onboarding)
+    {
+        <section class="onboarding screen" aria-labelledby="welcome-title">
+            <div class="onboarding-content">
+                <div class="assistant-heading"><span class="assistant-avatar" aria-hidden="true">✿</span><h1 id="welcome-title">Hola, soy tu asistente</h1></div>
+                <div class="speech-prompt"><p>Para ayudarte a encontrar a las personas adecuadas, me gustaría conocerte un poco.</p><strong>¿Cuáles son tus pasatiempos favoritos y desde dónde te conectas?</strong></div>
+                <button class="voice-start" @onclick="StartOnboardingVoice" aria-label="Pulsar para hablar y continuar">
+                    <span class="microphone" aria-hidden="true">🎙</span>
+                    <span>@(isListening ? "Escuchando…" : spokenText ?? "Pulsa aquí y cuéntamelo")</span>
+                </button>
+                @if (!string.IsNullOrWhiteSpace(voiceStatus)) { <p class="voice-status" role="status">@voiceStatus</p> }
+            </div>
+        </section>
+    }
+    else if (screen == View.Dashboard)
+    {
+        <section class="dashboard screen" aria-labelledby="dashboard-title">
+            <header class="dashboard-header"><h1 id="dashboard-title">Centro de Mando</h1><span class="user-icon" aria-hidden="true">👤</span></header>
+            <div class="dashboard-actions">
+                <button class="start-call" @onclick="StartCall"><span class="video-icon" aria-hidden="true">▣</span><span>INICIAR LLAMADA</span></button>
+                <div class="secondary-actions">
+                    <button class="secondary-button" @onclick="() => screen = View.Interests"><span class="secondary-icon star" aria-hidden="true">★</span><span>Mis Intereses</span></button>
+                    <button class="secondary-button" @onclick="() => screen = View.Contacts"><span class="secondary-icon contacts" aria-hidden="true">♙</span><span>Contactos</span></button>
+                </div>
+                <button class="help-button" @onclick="StartHelpVoice"><span aria-hidden="true">◉</span><span>Ayuda por Voz Inmediata</span></button>
+                @if (!string.IsNullOrWhiteSpace(voiceStatus)) { <p class="voice-status dashboard-status" role="status">@voiceStatus</p> }
+                @if (!string.IsNullOrWhiteSpace(spokenText)) { <p class="transcript" aria-live="polite">@spokenText</p> }
+            </div>
+        </section>
+    }
+    else if (screen == View.Call)
+    {
+        <section class="call-screen screen" aria-label="Videollamada">
+            <div class="remote-screen">
+                <video class="remote-video" @ref="remoteVideo" autoplay playsinline aria-label="Vídeo de la otra persona"></video>
+                <div class="remote-placeholder" @ref="remotePlaceholder"><span class="remote-avatar" aria-hidden="true">👋</span><p>@callStatus</p></div>
+            </div>
+            <div class="local-preview"><video @ref="localVideo" autoplay muted playsinline aria-label="Vista previa de tu cámara"></video></div>
+            <div class="call-controls">
+                <button class="next-button" @onclick="NextPerson"><span aria-hidden="true">➜</span><span>Siguiente</span></button>
+                <button class="hangup-button" @onclick="EndCall"><span aria-hidden="true">☎</span><span>Finalizar</span></button>
+            </div>
+        </section>
+    }
+    else if (screen == View.Interests)
+    {
+        <section class="simple-screen screen" aria-labelledby="interests-title">
+            <button class="back-button" @onclick="ReturnToDashboard">←</button>
+            <h1 id="interests-title">Mis Intereses</h1>
+            <p>Elige tus pasatiempos favoritos para compartirlos durante una charla.</p>
+            <div class="interest-list">
+                @foreach (var interest in interestOptions)
+                {
+                    <button class="interest-item @(selectedInterests.Contains(interest) ? "chosen" : "")" aria-pressed="@selectedInterests.Contains(interest)" @onclick="() => ToggleInterest(interest)"><span>@(selectedInterests.Contains(interest) ? "✓" : "+")</span>@interest</button>
+                }
+            </div>
+            <button class="save-button" @onclick="ReturnToDashboard">Guardar</button>
+        </section>
+    }
+    else if (screen == View.Contacts)
+    {
+        <section class="simple-screen screen" aria-labelledby="contacts-title">
+            <button class="back-button" @onclick="ReturnToDashboard">←</button>
+            <h1 id="contacts-title">Contactos recientes</h1>
+            <p>Tus conversaciones recientes aparecerán aquí.</p>
+        </section>
+    }
+</main>
+
+@code {
+    private enum View { Onboarding, Dashboard, Call, Interests, Contacts }
+    private View screen = View.Onboarding;
+    private ElementReference localVideo;
+    private ElementReference remoteVideo;
+    private ElementReference remotePlaceholder;
+    private DotNetObjectReference<Home>? dotNetReference;
+    private bool isListening;
+    private string? spokenText;
+    private string? voiceStatus;
+    private string callStatus = "Buscando conexión…";
+    private readonly string[] interestOptions = ["Jardinería", "Tejer", "Naturaleza", "Paseos", "Música", "Cocina"];
+    private readonly HashSet<string> selectedInterests = ["Paseos", "Música"];
+
+    private async Task StartOnboardingVoice()
+    {
+        spokenText = null;
+        screen = View.Dashboard;
+        await StartVoice("onboarding");
+    }
+
+    private Task StartHelpVoice() => StartVoice("help");
+
+    private async Task StartVoice(string purpose)
+    {
+        isListening = true;
+        voiceStatus = "Escuchando…";
+        try
+        {
+            dotNetReference ??= DotNetObjectReference.Create(this);
+            var started = await JS.InvokeAsync<bool>("conectaMas.startVoiceRecognition", dotNetReference, purpose);
+            if (!started)
+            {
+                isListening = false;
+                voiceStatus = "El reconocimiento de voz no está disponible en este navegador.";
+            }
+        }
+        catch (JSException)
+        {
+            isListening = false;
+            voiceStatus = "No se pudo iniciar el reconocimiento de voz.";
+        }
+    }
+
+    [JSInvokable]
+    public Task OnVoiceResult(string text, string purpose)
+    {
+        isListening = false;
+        voiceStatus = purpose == "help" ? "Te he escuchado. Si necesitas ayuda para usar la app, pide apoyo a alguien de confianza." : "Gracias, he anotado tus intereses.";
+        spokenText = $"Has dicho: «{text}»";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnVoiceError(string message)
+    {
+        isListening = false;
+        voiceStatus = message;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartCall()
+    {
+        screen = View.Call;
+        callStatus = "Solicitando acceso a la cámara y al micrófono…";
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        try
+        {
+            dotNetReference ??= DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("conectaMas.startPeerCall", localVideo, remoteVideo, remotePlaceholder, dotNetReference);
+        }
+        catch (JSException)
+        {
+            callStatus = "No se pudo iniciar la llamada. Comprueba los permisos de cámara y micrófono.";
+        }
+    }
+
+    private Task NextPerson() => JS.InvokeVoidAsync("conectaMas.nextPeer").AsTask();
+
+    private async Task EndCall()
+    {
+        await JS.InvokeVoidAsync("conectaMas.endPeerCall");
+        screen = View.Dashboard;
+    }
+
+    [JSInvokable]
+    public Task OnCallStatus(string status) => InvokeAsync(() =>
+    {
+        callStatus = status;
+        StateHasChanged();
+    });
+
+    private void ReturnToDashboard() => screen = View.Dashboard;
+
+    private void ToggleInterest(string interest)
+    {
+        if (!selectedInterests.Add(interest)) selectedInterests.Remove(interest);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("conectaMas.endPeerCall");
+            await JS.InvokeVoidAsync("conectaMas.stopVoiceRecognition");
+        }
+        catch (JSDisconnectedException) { }
+        dotNetReference?.Dispose();
+    }
+}
