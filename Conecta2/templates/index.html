@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-frame" role="main">
+
+    <!-- ======================================================== -->
+    <!-- 1. PANTALLA: PRESENTACIÓN Y ONBOARDING POR VOZ (T03, RF1) -->
+    <!-- ======================================================== -->
+    <section id="screen-onboarding" class="screen active" aria-labelledby="onboarding-title">
+        <div class="screen-content">
+            <div class="assistant-card">
+                <div class="assistant-header">
+                    <span class="assistant-icon" aria-hidden="true">👋</span>
+                    <div>
+                        <h1 id="onboarding-title" class="screen-title">Hola, soy tu asistente</h1>
+                        <p class="subtitle">Te ayudaré a conectarte con personas afines a ti.</p>
+                    </div>
+                </div>
+
+                <div class="question-box">
+                    <p class="question-text">
+                        <strong>¿Cómo te llamas y qué aficiones o gustos tienes?</strong>
+                    </p>
+                    <p class="help-text">Por ejemplo: <em>"Me llamo Carmen y me gusta la jardinería y pasear"</em></p>
+                </div>
+
+                <!-- Botón gigante de voz -->
+                <button id="btn-voice-onboarding" class="giant-voice-button" type="button" aria-label="Pulsar para hablar">
+                    <span class="mic-icon" aria-hidden="true">🎙️</span>
+                    <span id="voice-onboarding-label" class="btn-text">PULSA AQUÍ Y HABLA</span>
+                </button>
+
+                <div id="voice-transcript-box" class="transcript-box" style="display:none;" aria-live="polite">
+                    <span class="badge-tag">Te he escuchado:</span>
+                    <p id="voice-transcript-text" class="transcript-text"></p>
+                </div>
+
+                <!-- Formulario claro y legible para confirmar nombre e intereses -->
+                <div class="profile-preview-box">
+                    <div class="form-group mb-3">
+                        <label for="input-nombre" class="form-label font-bold">Tu nombre de pila o apodo:</label>
+                        <input type="text" id="input-nombre" class="form-control giant-input" placeholder="Ej: María, Paco..." autocomplete="off">
+                    </div>
+
+                    <div class="interests-tags-wrapper">
+                        <label class="form-label font-bold">Tus aficiones detectadas:</label>
+                        <div id="detected-tags" class="tags-container" aria-live="polite">
+                            <span class="tag-badge">paseos</span>
+                            <span class="tag-badge">música</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón principal para continuar -->
+                <button id="btn-continue-dashboard" class="giant-button bg-primary-action mt-4" type="button">
+                    <span>ENTRAR AL CENTRO DE MANDO</span>
+                    <span aria-hidden="true">➜</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 2. PANTALLA: CENTRO DE MANDO (DASHBOARD) (T05)           -->
+    <!-- ======================================================== -->
+    <section id="screen-dashboard" class="screen" aria-labelledby="dashboard-title">
+        <header class="dashboard-header">
+            <div>
+                <h1 id="dashboard-title" class="screen-title">Centro de Mando</h1>
+                <p id="user-greeting" class="user-greeting">Bienvenido/a</p>
+            </div>
+            <div class="user-avatar-badge" aria-hidden="true">👤</div>
+        </header>
+
+        <div class="dashboard-body">
+            <!-- BOTÓN PRINCIPAL GIGANTE: INICIAR LLAMADA (REPLICADO DE FIGMA) -->
+            <button id="btn-start-call" class="giant-call-button" type="button" aria-label="Iniciar llamada">
+                <span class="call-icon" aria-hidden="true">📞</span>
+                <span class="call-text">INICIAR LLAMADA</span>
+                <span class="call-subtext">Conectar con una persona afín</span>
+            </button>
+
+            <!-- Acciones secundarias en cuadrícula accesible -->
+            <div class="secondary-grid">
+                <button id="btn-nav-interests" class="secondary-card-button" type="button">
+                    <span class="sec-icon star" aria-hidden="true">⭐</span>
+                    <span class="sec-label">Mis Intereses</span>
+                </button>
+                <button id="btn-nav-contacts" class="secondary-card-button" type="button">
+                    <span class="sec-icon contacts" aria-hidden="true">👥</span>
+                    <span class="sec-label">Mis Contactos</span>
+                </button>
+            </div>
+
+            <!-- Botón de asistencia por voz inmediata -->
+            <button id="btn-voice-help" class="giant-help-button" type="button">
+                <span aria-hidden="true">🔊</span>
+                <span>Ayuda por Voz Inmediata</span>
+            </button>
+
+            <div id="help-message-box" class="help-message" style="display:none;" role="status" aria-live="polite"></div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 3. PANTALLA: BÚSQUEDA Y EMPAREJAMIENTO (MATCHING) (T06)  -->
+    <!-- ======================================================== -->
+    <section id="screen-matching" class="screen" aria-labelledby="matching-title">
+        <div class="matching-container">
+            <h1 id="matching-title" class="screen-title text-center">Buscando conexión</h1>
+            
+            <div class="radar-box">
+                <div class="radar-pulse" aria-hidden="true"></div>
+                <div class="radar-icon" aria-hidden="true">🤝</div>
+            </div>
+
+            <p id="matching-status-text" class="status-indicator-text" aria-live="polite">
+                Analizando aficiones y buscando a una persona compatible…
+            </p>
+
+            <div id="match-result-card" class="match-card" style="display:none;" aria-live="polite">
+                <div class="match-avatar" aria-hidden="true">👤</div>
+                <h2 id="match-candidate-name" class="match-name">Nombre</h2>
+                <p id="match-affinity-info" class="match-affinity"></p>
+                <div id="match-common-tags" class="tags-container justify-content-center"></div>
+                
+                <button id="btn-connect-now" class="giant-button bg-success-action mt-4" type="button">
+                    <span>CONECTAR EN VÍDEO AHORA</span>
+                    <span aria-hidden="true">➜</span>
+                </button>
+            </div>
+
+            <button id="btn-cancel-matching" class="giant-button bg-secondary-action mt-3" type="button">
+                <span>VOLVER AL INICIO</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 4. PANTALLA: VIDEOLLAMADA WEBRTC (T07, T08, RF2, RF4)     -->
+    <!-- ======================================================== -->
+    <section id="screen-call" class="screen" aria-label="Videollamada en directo">
+        <div class="video-stage">
+            <!-- Vídeo remoto -->
+            <div class="remote-video-wrapper">
+                <video id="remote-video" autoplay playsinline aria-label="Vídeo de la otra persona"></video>
+                <div id="remote-placeholder" class="remote-placeholder">
+                    <span class="placeholder-avatar" aria-hidden="true">👋</span>
+                    <p id="call-status-label" class="placeholder-text" aria-live="polite">Conectando la videollamada…</p>
+                </div>
+            </div>
+
+            <!-- Vista previa local (recuadro) -->
+            <div class="local-preview-wrapper" aria-label="Tu cámara">
+                <video id="local-video" autoplay muted playsinline></video>
+                <span class="local-label">Tú</span>
+            </div>
+
+            <!-- Información de con quién estás hablando -->
+            <div id="call-peer-banner" class="call-peer-banner">
+                <span class="peer-status-dot"></span>
+                <span id="call-peer-name" class="peer-name">Hablando con Amigo/a</span>
+            </div>
+
+            <!-- Controles inferiores: SIGUIENTE y COLGAR (con doble confirmación) -->
+            <footer class="call-controls-bar">
+                <!-- Botón SIGUIENTE (RF4: busca otro match sin salir) -->
+                <button id="btn-call-next" class="call-ctrl-button btn-next" type="button">
+                    <span aria-hidden="true">⏭️</span>
+                    <span>SIGUIENTE</span>
+                </button>
+
+                <!-- Botón COLGAR (RF3: abre el modal de confirmación) -->
+                <button id="btn-call-hangup" class="call-ctrl-button btn-hangup" type="button">
+                    <span aria-hidden="true">☎️</span>
+                    <span>COLGAR</span>
+                </button>
+            </footer>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- MODAL DE DOBLE CONFIRMACIÓN AL COLGAR (REGLA 5, RF3)     -->
+    <!-- ======================================================== -->
+    <div id="modal-hangup-confirm" class="accessible-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirm-hangup-title">
+        <div class="accessible-modal-dialog">
+            <span class="modal-warning-icon" aria-hidden="true">⚠️</span>
+            <h2 id="confirm-hangup-title" class="modal-title">¿Deseas colgar la llamada?</h2>
+            <p class="modal-description">Si cuelgas ahora, se cortará la conversación con la otra persona.</p>
+
+            <div class="modal-actions-stack">
+                <!-- Botón 1: Colgar de verdad -->
+                <button id="btn-confirm-hangup-yes" class="giant-button bg-danger-action" type="button">
+                    <span>SÍ, COLGAR LLAMADA</span>
+                </button>
+                <!-- Botón 2: Continuar hablando -->
+                <button id="btn-confirm-hangup-no" class="giant-button bg-success-action" type="button">
+                    <span>CONTINUAR HABLANDO</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 5. PANTALLA: RESUMEN DE LLAMADA Y GUARDAR CONTACTO (T09, RF5) -->
+    <!-- ======================================================== -->
+    <section id="screen-summary" class="screen" aria-labelledby="summary-title">
+        <div class="screen-content text-center">
+            <span class="summary-icon" aria-hidden="true">✨</span>
+            <h1 id="summary-title" class="screen-title">Llamada Finalizada</h1>
+            <p class="summary-subtitle">
+                Has conversado con <strong id="summary-peer-name">tu interlocutor/a</strong>.
+            </p>
+
+            <div class="summary-contact-card">
+                <div class="summary-avatar" aria-hidden="true">👤</div>
+                <p class="save-contact-prompt">¿Quieres guardar a esta persona en tus contactos para volver a hablar en el futuro?</p>
+
+                <!-- BOTÓN PRINCIPAL: GUARDAR CONTACTO (RF5, T09) -->
+                <button id="btn-save-contact" class="giant-button bg-success-action" type="button">
+                    <span aria-hidden="true">⭐</span>
+                    <span>GUARDAR EN MIS CONTACTOS</span>
+                </button>
+
+                <p id="save-contact-feedback" class="feedback-message" style="display:none;" role="status" aria-live="polite"></p>
+            </div>
+
+            <button id="btn-summary-home" class="giant-button bg-primary-action mt-4" type="button">
+                <span>VOLVER AL CENTRO DE MANDO</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 6. PANTALLA: MIS CONTACTOS (CONSULTA)                     -->
+    <!-- ======================================================== -->
+    <section id="screen-contacts" class="screen" aria-labelledby="contacts-title">
+        <div class="screen-content">
+            <header class="section-nav-header">
+                <button id="btn-back-contacts" class="back-nav-button" type="button" aria-label="Volver al Centro de Mando">←</button>
+                <h1 id="contacts-title" class="screen-title">Mis Contactos</h1>
+            </header>
+
+            <p class="subtitle">Personas con las que has conectado y guardado.</p>
+
+            <div id="contacts-list-container" class="contacts-list" aria-live="polite">
+                <!-- Se cargan dinámicamente -->
+                <p class="empty-state">No tienes contactos guardados todavía.</p>
+            </div>
+
+            <button id="btn-contacts-back-dashboard" class="giant-button bg-primary-action mt-4" type="button">
+                <span>VOLVER AL CENTRO DE MANDO</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- 7. PANTALLA: MIS INTERESES (EDICIÓN Y VOZ)               -->
+    <!-- ======================================================== -->
+    <section id="screen-interests" class="screen" aria-labelledby="interests-title">
+        <div class="screen-content">
+            <header class="section-nav-header">
+                <button id="btn-back-interests" class="back-nav-button" type="button" aria-label="Volver al Centro de Mando">←</button>
+                <h1 id="interests-title" class="screen-title">Mis Intereses</h1>
+            </header>
+
+            <p class="subtitle">Pulsa sobre tus gustos para activarlos o desactivarlos:</p>
+
+            <div id="interests-grid" class="interests-toggle-grid">
+                <!-- Opciones interactivas con estados de alto contraste -->
+                <button class="interest-toggle-btn active" data-tag="jardinería" type="button" aria-pressed="true">
+                    <span class="check-mark">✓</span>
+                    <span>Jardinería</span>
+                </button>
+                <button class="interest-toggle-btn active" data-tag="paseos" type="button" aria-pressed="true">
+                    <span class="check-mark">✓</span>
+                    <span>Paseos</span>
+                </button>
+                <button class="interest-toggle-btn active" data-tag="música" type="button" aria-pressed="true">
+                    <span class="check-mark">✓</span>
+                    <span>Música</span>
+                </button>
+                <button class="interest-toggle-btn" data-tag="cocina" type="button" aria-pressed="false">
+                    <span class="check-mark">+</span>
+                    <span>Cocina</span>
+                </button>
+                <button class="interest-toggle-btn" data-tag="tejer" type="button" aria-pressed="false">
+                    <span class="check-mark">+</span>
+                    <span>Tejer</span>
+                </button>
+                <button class="interest-toggle-btn" data-tag="lectura" type="button" aria-pressed="false">
+                    <span class="check-mark">+</span>
+                    <span>Lectura</span>
+                </button>
+                <button class="interest-toggle-btn" data-tag="naturaleza" type="button" aria-pressed="false">
+                    <span class="check-mark">+</span>
+                    <span>Naturaleza</span>
+                </button>
+                <button class="interest-toggle-btn" data-tag="animales" type="button" aria-pressed="false">
+                    <span class="check-mark">+</span>
+                    <span>Animales</span>
+                </button>
+            </div>
+
+            <!-- Botón para añadir interés por voz -->
+            <button id="btn-add-interest-voice" class="giant-voice-button mt-4" type="button">
+                <span class="mic-icon" aria-hidden="true">🎙️</span>
+                <span>Decir afición por voz</span>
+            </button>
+
+            <button id="btn-save-interests" class="giant-button bg-success-action mt-3" type="button">
+                <span>GUARDAR INTERESES</span>
+            </button>
+        </div>
+    </section>
+
+</main>
+{% endblock %}

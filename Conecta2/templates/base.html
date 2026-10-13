@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Conecta2 | Videollamadas Accesibles{% endblock %}</title>
+    <!-- Bootstrap 5 CSS para rejilla y accesibilidad -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <!-- Estilos específicos de Conecta2 (Alto contraste y botones gigantes) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+    <div id="app" class="app-container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Cliente Socket.io local -->
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <!-- Módulos de la aplicación -->
+    <script src="{{ url_for('static', filename='js/speech.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/webrtc.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
