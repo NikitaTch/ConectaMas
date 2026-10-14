@@ -1,6 +1,6 @@
 # Conecta2 - Videollamadas Accesibles para Personas Mayores
 
-Aplicación web desarrollada siguiendo estrictamente las especificaciones de diseño y constitución de los 5 documentos de `SDD_Conecta2/ES` (`AGENTS.md`, `contitution.md`, `palan.md`, `spec.md`, `tasks.md`).
+Aplicación web de videollamadas entre personas mayores con los mismos intereses.
 
 ---
 
@@ -17,7 +17,7 @@ Aplicación web desarrollada siguiendo estrictamente las especificaciones de dis
 
 ## 🎯 Cumplimiento de Reglas y Requisitos del SDD
 
-1. **Constitución y Accesibilidad Extrema (`contitution.md`):**
+1. **Constitución y Accesibilidad Extrema (`constitution.md`):**
    * **Regla 1:** Botones gigantes táctiles y tipografía de alto contraste.
    * **Regla 2:** Flujos guiados de máximo un botón de acción principal por pantalla.
    * **Regla 3:** Entrada y asistencia por voz prioritarias.

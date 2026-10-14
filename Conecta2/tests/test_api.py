@@ -1,6 +1,6 @@
 """
 Pruebas de la API REST para Conecta2
-Valida los endpoints de extracción de voz, perfil, matching y guardado de contactos (T04, T06, T09).
+Valida los endpoints de extracción de voz, perfil, matching, guardado de contactos y chatbot asistente.
 """
 
 import pytest
@@ -34,7 +34,8 @@ def test_api_extract_tags(client):
     assert 'cocina' in data['tags'] or 'paseos' in data['tags']
 
 
-def test_api_save_profile(client):
+def test_api_save_and_update_profile(client):
+    # 1. Crear nuevo usuario
     res = client.post('/api/save_profile', json={
         'nombre': 'Teresa',
         'interests': ['tejer', 'lectura']
@@ -42,8 +43,41 @@ def test_api_save_profile(client):
     assert res.status_code == 201
     data = res.get_json()
     assert data['status'] == 'success'
+    user_id = data['user']['id']
     assert data['user']['nombre'] == 'Teresa'
     assert 'tejer' in data['user']['interests']
+
+    # 2. Actualizar el perfil existente sin duplicar usuario
+    res_update = client.post('/api/save_profile', json={
+        'user_id': user_id,
+        'nombre': 'Teresa M.',
+        'interests': ['tejer', 'jardinería', 'cine']
+    })
+    assert res_update.status_code == 200
+    updated_data = res_update.get_json()
+    assert updated_data['user']['id'] == user_id
+    assert updated_data['user']['nombre'] == 'Teresa M.'
+    assert 'jardinería' in updated_data['user']['interests']
+    assert 'cine' in updated_data['user']['interests']
+    assert 'lectura' not in updated_data['user']['interests']
+
+
+def test_api_update_user_interests(client):
+    res = client.post('/api/save_profile', json={
+        'nombre': 'Paco',
+        'interests': ['radio']
+    })
+    user_id = res.get_json()['user']['id']
+
+    # Actualizar intereses con endpoint dedicado
+    res_interests = client.post(f'/api/users/{user_id}/interests', json={
+        'interests': ['radio', 'dominó', 'paseos']
+    })
+    assert res_interests.status_code == 200
+    data = res_interests.get_json()
+    assert 'dominó' in data['interests']
+    assert 'paseos' in data['interests']
+    assert len(data['interests']) == 3
 
 
 def test_api_get_match(client):
@@ -90,3 +124,14 @@ def test_api_save_and_list_contacts(client):
     contacts = list_res.get_json()['contacts']
     assert len(contacts) == 1
     assert contacts[0]['contact_nombre'] == 'Rosa'
+
+
+def test_api_assistant_chat(client):
+    res = client.post('/api/assistant/chat', json={
+        'message': '¿Cómo puedo hacer una llamada?'
+    })
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data['status'] == 'success'
+    assert 'answer' in data
+    assert 'INICIAR LLAMADA' in data['answer'] or 'botón verde' in data['answer'].lower()

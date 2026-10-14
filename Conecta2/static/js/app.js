@@ -1,9 +1,16 @@
 /**
  * Conecta2 - Lógica Principal de la Aplicación
- * Conecta la UI, la API REST, la Web Speech API y WebRTC.
+ * Conecta la UI, la API REST, la Web Speech API, WebRTC y el Asistente Virtual.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Lista de sugerencias populares para aficiones
+    const POPULAR_SUGGESTIONS = [
+        'jardinería', 'paseos', 'música', 'cocina', 'tejer',
+        'lectura', 'naturaleza', 'animales', 'cine', 'dominó',
+        'pintura', 'radio', 'viajes', 'manualidades'
+    ];
+
     // Estado del usuario activo
     let currentUser = {
         id: null,
@@ -12,6 +19,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let lastSpokenCandidate = null;
+
+    // Cargar usuario persistido en localStorage si existe
+    function loadSavedSession() {
+        try {
+            const saved = localStorage.getItem('conecta2_current_user');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.id) {
+                    currentUser = parsed;
+                    const greeting = document.getElementById('user-greeting');
+                    if (greeting) greeting.textContent = `Hola, ${currentUser.nombre}`;
+                    const inputNombre = document.getElementById('input-nombre');
+                    if (inputNombre) inputNombre.value = currentUser.nombre;
+                    renderDetectedTags(currentUser.interests);
+                    return true;
+                }
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    function persistSession() {
+        try {
+            localStorage.setItem('conecta2_current_user', JSON.stringify(currentUser));
+        } catch (e) {}
+    }
 
     // Elementos de pantalla
     const screens = {
@@ -37,6 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Al cambiar de pantalla, detener escuchas de voz activas
         VoiceManager.stopListening();
+    }
+
+    // Inicializar sesión previa si existe
+    if (loadSavedSession()) {
+        showScreen('dashboard');
     }
 
     // ========================================================
@@ -73,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     voiceTranscriptBox.style.display = 'block';
                     voiceTranscriptText.textContent = `«${transcript}»`;
 
-                    // Extraer nombre por heurística sencilla ("me llamo X", "soy X")
+                    // Extraer nombre por patrones comunes
                     const nameMatch = transcript.match(/(?:me llamo|soy|mi nombre es)\s+([A-Za-zÁÉÍÓÚáéíóúñÑ]+)/i);
                     if (nameMatch && nameMatch[1]) {
                         inputNombre.value = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1);
@@ -124,12 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const nombre = inputNombre.value.trim() || 'Amigo/a';
             currentUser.nombre = nombre;
 
-            // Guardar perfil en la BD vía API REST (T04)
+            // Guardar o actualizar perfil en la BD (T04)
             try {
                 const response = await fetch('/api/save_profile', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        user_id: currentUser.id,
                         nombre: currentUser.nombre,
                         interests: currentUser.interests
                     })
@@ -137,12 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const resData = await response.json();
                 if (resData.user) {
                     currentUser.id = resData.user.id;
+                    currentUser.interests = resData.user.interests;
+                    persistSession();
                 }
             } catch (e) {
                 console.error('Error al guardar perfil:', e);
             }
 
-            // Actualizar saludo en Dashboard
             const greeting = document.getElementById('user-greeting');
             if (greeting) greeting.textContent = `Hola, ${currentUser.nombre}`;
 
@@ -157,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnNavInterests = document.getElementById('btn-nav-interests');
     const btnNavContacts = document.getElementById('btn-nav-contacts');
     const btnVoiceHelp = document.getElementById('btn-voice-help');
-    const helpMessageBox = document.getElementById('help-message-box');
 
     if (btnStartCall) {
         btnStartCall.addEventListener('click', () => {
@@ -167,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnNavInterests) {
         btnNavInterests.addEventListener('click', () => {
-            showScreen('interests');
+            loadAndShowInterestsScreen();
         });
     }
 
@@ -177,14 +216,128 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Botón de ayuda: abre el Chatbot Asistente Virtual
     if (btnVoiceHelp) {
         btnVoiceHelp.addEventListener('click', () => {
-            const msg = 'Estás en el Centro de Mando de Conecta2. Pulsa el botón verde gigante para iniciar una videollamada con alguien que comparta tus gustos.';
-            if (helpMessageBox) {
-                helpMessageBox.style.display = 'block';
-                helpMessageBox.textContent = msg;
+            openAssistantModal();
+        });
+    }
+
+    // ========================================================
+    // MODAL DEL CHATBOT ASISTENTE VIRTUAL
+    // ========================================================
+    const modalAssistantChat = document.getElementById('modal-assistant-chat');
+    const btnCloseAssistant = document.getElementById('btn-close-assistant');
+    const assistantChatHistory = document.getElementById('assistant-chat-history');
+    const inputAssistantText = document.getElementById('input-assistant-text');
+    const btnAssistantSend = document.getElementById('btn-assistant-send');
+    const btnAssistantVoice = document.getElementById('btn-assistant-voice');
+    const btnAssistantVoiceLabel = document.getElementById('btn-assistant-voice-label');
+
+    function openAssistantModal() {
+        if (modalAssistantChat) {
+            modalAssistantChat.style.display = 'flex';
+            if (inputAssistantText) inputAssistantText.focus();
+        }
+    }
+
+    function closeAssistantModal() {
+        if (modalAssistantChat) {
+            modalAssistantChat.style.display = 'none';
+        }
+        VoiceManager.stopListening();
+    }
+
+    if (btnCloseAssistant) btnCloseAssistant.addEventListener('click', closeAssistantModal);
+
+    function appendChatMessage(sender, text) {
+        if (!assistantChatHistory) return;
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${sender}`;
+        const p = document.createElement('p');
+        p.textContent = text;
+        bubble.appendChild(p);
+        assistantChatHistory.appendChild(bubble);
+        assistantChatHistory.scrollTop = assistantChatHistory.scrollHeight;
+    }
+
+    async function sendQuestionToAssistant(question) {
+        const cleanQ = question.trim();
+        if (!cleanQ) return;
+
+        appendChatMessage('user', cleanQ);
+        if (inputAssistantText) inputAssistantText.value = '';
+
+        try {
+            const res = await fetch('/api/assistant/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: cleanQ, user_id: currentUser.id })
+            });
+            const data = await res.json();
+            const answer = data.answer || 'Disculpa, no he podido procesar tu pregunta.';
+            appendChatMessage('assistant', answer);
+            VoiceManager.speak(answer);
+        } catch (err) {
+            const fallback = 'Puedes pulsar el botón verde para iniciar una llamada o pulsar Mis Intereses para ver tus gustos.';
+            appendChatMessage('assistant', fallback);
+            VoiceManager.speak(fallback);
+        }
+    }
+
+    if (btnAssistantSend) {
+        btnAssistantSend.addEventListener('click', () => {
+            const q = inputAssistantText ? inputAssistantText.value : '';
+            sendQuestionToAssistant(q);
+        });
+    }
+
+    if (inputAssistantText) {
+        inputAssistantText.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendQuestionToAssistant(inputAssistantText.value);
             }
-            VoiceManager.speak(msg);
+        });
+    }
+
+    // Botones de preguntas rápidas
+    document.querySelectorAll('.quick-question-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const q = btn.getAttribute('data-q');
+            if (q) sendQuestionToAssistant(q);
+        });
+    });
+
+    // Preguntar por voz al asistente
+    if (btnAssistantVoice) {
+        btnAssistantVoice.addEventListener('click', () => {
+            if (VoiceManager.listening) {
+                VoiceManager.stopListening();
+                btnAssistantVoice.classList.remove('listening');
+                if (btnAssistantVoiceLabel) btnAssistantVoiceLabel.textContent = 'HABLAR';
+                return;
+            }
+
+            btnAssistantVoice.classList.add('listening');
+            if (btnAssistantVoiceLabel) btnAssistantVoiceLabel.textContent = 'ESCUCHANDO…';
+
+            VoiceManager.startListening({
+                onResult: (text) => {
+                    btnAssistantVoice.classList.remove('listening');
+                    if (btnAssistantVoiceLabel) btnAssistantVoiceLabel.textContent = 'HABLAR';
+                    sendQuestionToAssistant(text);
+                },
+                onError: (msg) => {
+                    btnAssistantVoice.classList.remove('listening');
+                    if (btnAssistantVoiceLabel) btnAssistantVoiceLabel.textContent = 'HABLAR';
+                    alert(msg);
+                },
+                onEnd: () => {
+                    btnAssistantVoice.classList.remove('listening');
+                    if (btnAssistantVoiceLabel) btnAssistantVoiceLabel.textContent = 'HABLAR';
+                }
+            });
         });
     }
 
@@ -204,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (matchResultCard) matchResultCard.style.display = 'none';
         if (matchingStatusText) matchingStatusText.textContent = 'Analizando tus gustos y buscando a una persona compatible…';
 
-        // Si aún no se creó el usuario en BD, crearlo
+        // Asegurar que el usuario existe en base de datos
         if (!currentUser.id) {
             try {
                 const res = await fetch('/api/save_profile', {
@@ -213,7 +366,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(currentUser)
                 });
                 const d = await res.json();
-                if (d.user) currentUser.id = d.user.id;
+                if (d.user) {
+                    currentUser.id = d.user.id;
+                    persistSession();
+                }
             } catch (e) {}
         }
 
@@ -242,15 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 matchResultCard.style.display = 'block';
                 matchingStatusText.textContent = '¡Persona compatible encontrada!';
 
-                // Leer en voz alta la propuesta de conexión (RF4 del SDD)
                 const voiceSpeech = `Hemos encontrado a ${matchData.candidate.nombre}. Pulsa el botón para iniciar el vídeo.`;
                 VoiceManager.speak(voiceSpeech);
             } else {
                 matchingStatusText.textContent = matchData.message || 'Buscando a alguien compatible… Conectando directamente.';
-                // Si no hay candidatos guardados, pasar directo a la llamada en red
-                setTimeout(() => {
-                    launchVideoCall();
-                }, 1200);
+                setTimeout(() => { launchVideoCall(); }, 1200);
             }
         } catch (err) {
             console.error('Error al buscar match:', err);
@@ -259,17 +411,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (btnConnectNow) {
-        btnConnectNow.addEventListener('click', () => {
-            launchVideoCall();
-        });
-    }
-
-    if (btnCancelMatching) {
-        btnCancelMatching.addEventListener('click', () => {
-            showScreen('dashboard');
-        });
-    }
+    if (btnConnectNow) btnConnectNow.addEventListener('click', launchVideoCall);
+    if (btnCancelMatching) btnCancelMatching.addEventListener('click', () => showScreen('dashboard'));
 
     // ========================================================
     // 4. PANTALLA: VIDEOLLAMADA WEBRTC
@@ -288,7 +431,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConfirmHangupYes = document.getElementById('btn-confirm-hangup-yes');
     const btnConfirmHangupNo = document.getElementById('btn-confirm-hangup-no');
 
-    // Configurar Callbacks WebRTC
     WebRTCManager.setCallbacks({
         onLocalStream: (stream) => {
             if (localVideo) localVideo.srcObject = stream;
@@ -310,7 +452,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (callStatusLabel) callStatusLabel.textContent = `Conectando con ${peer.nombre}…`;
         },
         onPeerLeft: () => {
-            if (remoteVideo) remoteVideo.style.display = 'none';
+            if (remoteVideo) {
+                remoteVideo.srcObject = null;
+                remoteVideo.style.display = 'none';
+            }
             if (remotePlaceholder) {
                 remotePlaceholder.style.display = 'flex';
                 if (callStatusLabel) callStatusLabel.textContent = 'La otra persona ha salido de la llamada. Pulsa Siguiente para buscar de nuevo.';
@@ -320,7 +465,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function launchVideoCall() {
         showScreen('call');
-        if (remoteVideo) remoteVideo.style.display = 'none';
+        if (remoteVideo) {
+            remoteVideo.srcObject = null;
+            remoteVideo.style.display = 'none';
+        }
         if (remotePlaceholder) remotePlaceholder.style.display = 'flex';
         if (callStatusLabel) callStatusLabel.textContent = 'Solicitando acceso a la cámara y al micrófono…';
 
@@ -336,10 +484,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // RF4: Botón SIGUIENTE (buscar nuevo interlocutor sin salir)
     if (btnCallNext) {
         btnCallNext.addEventListener('click', () => {
-            if (remoteVideo) remoteVideo.style.display = 'none';
+            if (remoteVideo) {
+                remoteVideo.srcObject = null;
+                remoteVideo.style.display = 'none';
+            }
             if (remotePlaceholder) {
                 remotePlaceholder.style.display = 'flex';
                 if (callStatusLabel) callStatusLabel.textContent = 'Buscando a otra persona…';
@@ -352,21 +502,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // RF3 & Regla 5: Botón COLGAR -> Abrir modal de doble confirmación
     if (btnCallHangup) {
         btnCallHangup.addEventListener('click', () => {
             if (modalHangupConfirm) modalHangupConfirm.style.display = 'flex';
         });
     }
 
-    // Confirmación: Continuar hablando (No colgar)
     if (btnConfirmHangupNo) {
         btnConfirmHangupNo.addEventListener('click', () => {
             if (modalHangupConfirm) modalHangupConfirm.style.display = 'none';
         });
     }
 
-    // Confirmación: Sí, colgar de verdad
     if (btnConfirmHangupYes) {
         btnConfirmHangupYes.addEventListener('click', () => {
             if (modalHangupConfirm) modalHangupConfirm.style.display = 'none';
@@ -411,8 +558,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        user_id: currentUser.id,
-                        contact_id: lastSpokenCandidate.id
+                        user_id: parseInt(currentUser.id, 10),
+                        contact_id: parseInt(lastSpokenCandidate.id, 10)
                     })
                 });
                 const data = await response.json();
@@ -428,11 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (btnSummaryHome) {
-        btnSummaryHome.addEventListener('click', () => {
-            showScreen('dashboard');
-        });
-    }
+    if (btnSummaryHome) btnSummaryHome.addEventListener('click', () => showScreen('dashboard'));
 
     // ========================================================
     // 6. PANTALLA: CONSULTA DE CONTACTOS
@@ -479,75 +622,222 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnContactsBackDashboard) btnContactsBackDashboard.addEventListener('click', () => showScreen('dashboard'));
 
     // ========================================================
-    // 7. PANTALLA: EDICIÓN DE INTERESES
+    // 7. PANTALLA: EDICIÓN DINÁMICA DE INTERESES (CORREGIDO)
     // ========================================================
-    const btnBackInterests = document.getElementById('btn-back-interests');
-    const btnSaveInterests = document.getElementById('btn-save-interests');
+    const myActiveInterestsList = document.getElementById('my-active-interests-list');
+    const suggestedInterestsGrid = document.getElementById('suggested-interests-grid');
+    const inputCustomInterest = document.getElementById('input-custom-interest');
+    const btnAddCustomInterest = document.getElementById('btn-add-custom-interest');
     const btnAddInterestVoice = document.getElementById('btn-add-interest-voice');
-    const interestToggleBtns = document.querySelectorAll('.interest-toggle-btn');
+    const btnAddInterestVoiceText = document.getElementById('btn-add-interest-voice-text');
+    const btnSaveInterests = document.getElementById('btn-save-interests');
+    const interestsSaveFeedback = document.getElementById('interests-save-feedback');
+    const btnBackInterests = document.getElementById('btn-back-interests');
 
-    interestToggleBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tag = btn.getAttribute('data-tag');
-            const isActive = btn.classList.contains('active');
-            if (isActive) {
-                btn.classList.remove('active');
-                btn.setAttribute('aria-pressed', 'false');
-                btn.querySelector('.check-mark').textContent = '+';
-                currentUser.interests = currentUser.interests.filter(i => i !== tag);
+    async function loadAndShowInterestsScreen() {
+        showScreen('interests');
+        if (interestsSaveFeedback) interestsSaveFeedback.style.display = 'none';
+
+        // Si el usuario existe en BD, consultar sus intereses más recientes
+        if (currentUser.id) {
+            try {
+                const res = await fetch(`/api/users/${currentUser.id}`);
+                if (res.ok) {
+                    const userData = await res.json();
+                    if (userData.interests && userData.interests.length > 0) {
+                        currentUser.interests = userData.interests;
+                        persistSession();
+                    }
+                }
+            } catch (e) {
+                console.error('Error al sincronizar intereses:', e);
+            }
+        }
+
+        renderMyInterestsUI();
+    }
+
+    function renderMyInterestsUI() {
+        // 1. Renderizar lista activa con botones de eliminar (✖)
+        if (myActiveInterestsList) {
+            myActiveInterestsList.innerHTML = '';
+            if (currentUser.interests.length === 0) {
+                myActiveInterestsList.innerHTML = '<p class="text-muted m-0 p-2">No has seleccionado ninguna afición todavía. Añade una abajo.</p>';
             } else {
-                btn.classList.add('active');
-                btn.setAttribute('aria-pressed', 'true');
-                btn.querySelector('.check-mark').textContent = '✓';
-                if (!currentUser.interests.includes(tag)) currentUser.interests.push(tag);
+                currentUser.interests.forEach(tag => {
+                    const badge = document.createElement('div');
+                    badge.className = 'tag-badge-editable';
+
+                    const spanText = document.createElement('span');
+                    spanText.textContent = tag;
+                    badge.appendChild(spanText);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'tag-remove-btn';
+                    removeBtn.type = 'button';
+                    removeBtn.setAttribute('aria-label', `Quitar afición ${tag}`);
+                    removeBtn.textContent = '✕';
+                    removeBtn.addEventListener('click', () => {
+                        removeInterest(tag);
+                    });
+
+                    badge.appendChild(removeBtn);
+                    myActiveInterestsList.appendChild(badge);
+                });
+            }
+        }
+
+        // 2. Renderizar sugerencias populares actualizadas
+        if (suggestedInterestsGrid) {
+            suggestedInterestsGrid.innerHTML = '';
+            POPULAR_SUGGESTIONS.forEach(sug => {
+                const isSelected = currentUser.interests.some(i => i.toLowerCase() === sug.toLowerCase());
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `interest-toggle-btn ${isSelected ? 'active' : ''}`;
+                btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                btn.innerHTML = `
+                    <span class="check-mark">${isSelected ? '✓' : '+'}</span>
+                    <span>${sug.charAt(0).toUpperCase() + sug.slice(1)}</span>
+                `;
+                btn.addEventListener('click', () => {
+                    if (isSelected) {
+                        removeInterest(sug);
+                    } else {
+                        addInterest(sug);
+                    }
+                });
+                suggestedInterestsGrid.appendChild(btn);
+            });
+        }
+    }
+
+    function addInterest(tag) {
+        const clean = tag.trim().toLowerCase();
+        if (!clean) return;
+        if (!currentUser.interests.some(i => i.toLowerCase() === clean)) {
+            currentUser.interests.push(clean);
+            renderMyInterestsUI();
+        }
+    }
+
+    function removeInterest(tag) {
+        const clean = tag.trim().toLowerCase();
+        currentUser.interests = currentUser.interests.filter(i => i.toLowerCase() !== clean);
+        renderMyInterestsUI();
+    }
+
+    // Añadir afición escribiendo
+    function handleAddCustom() {
+        if (!inputCustomInterest) return;
+        const val = inputCustomInterest.value.trim();
+        if (val) {
+            addInterest(val);
+            inputCustomInterest.value = '';
+            inputCustomInterest.focus();
+        }
+    }
+
+    if (btnAddCustomInterest) btnAddCustomInterest.addEventListener('click', handleAddCustom);
+    if (inputCustomInterest) {
+        inputCustomInterest.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddCustom();
             }
         });
-    });
+    }
 
+    // Añadir afición por voz
     if (btnAddInterestVoice) {
         btnAddInterestVoice.addEventListener('click', () => {
+            if (VoiceManager.listening) {
+                VoiceManager.stopListening();
+                btnAddInterestVoice.classList.remove('listening');
+                if (btnAddInterestVoiceText) btnAddInterestVoiceText.textContent = 'Pulsar y decir afición por voz';
+                return;
+            }
+
+            btnAddInterestVoice.classList.add('listening');
+            if (btnAddInterestVoiceText) btnAddInterestVoiceText.textContent = 'ESCUCHANDO… DI TU AFICIÓN';
+
             VoiceManager.startListening({
-                onStart: () => {
-                    btnAddInterestVoice.classList.add('listening');
-                },
-                onResult: (text) => {
+                onResult: async (text) => {
                     btnAddInterestVoice.classList.remove('listening');
-                    const cleanTag = text.toLowerCase().trim();
-                    if (cleanTag && !currentUser.interests.includes(cleanTag)) {
-                        currentUser.interests.push(cleanTag);
-                        alert(`Afición añadida: ${cleanTag}`);
+                    if (btnAddInterestVoiceText) btnAddInterestVoiceText.textContent = 'Pulsar y decir afición por voz';
+
+                    // Extraer palabras clave con el backend
+                    try {
+                        const res = await fetch('/api/extract_tags', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text })
+                        });
+                        const d = await res.json();
+                        if (d.tags && d.tags.length > 0) {
+                            d.tags.forEach(t => addInterest(t));
+                        } else {
+                            addInterest(text);
+                        }
+                    } catch (e) {
+                        addInterest(text);
                     }
                 },
                 onError: (msg) => {
                     btnAddInterestVoice.classList.remove('listening');
+                    if (btnAddInterestVoiceText) btnAddInterestVoiceText.textContent = 'Pulsar y decir afición por voz';
                     alert(msg);
                 },
                 onEnd: () => {
                     btnAddInterestVoice.classList.remove('listening');
+                    if (btnAddInterestVoiceText) btnAddInterestVoiceText.textContent = 'Pulsar y decir afición por voz';
                 }
             });
         });
     }
 
+    // Guardar intereses en la base de datos
     if (btnSaveInterests) {
         btnSaveInterests.addEventListener('click', async () => {
-            if (currentUser.id) {
-                try {
-                    await fetch('/api/save_profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            nombre: currentUser.nombre,
-                            interests: currentUser.interests
-                        })
-                    });
-                } catch (e) {}
+            if (currentUser.interests.length === 0) {
+                currentUser.interests = ['paseos', 'música'];
             }
-            showScreen('dashboard');
+
+            persistSession();
+
+            try {
+                const response = await fetch('/api/save_profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentUser.id,
+                        nombre: currentUser.nombre,
+                        interests: currentUser.interests
+                    })
+                });
+                const data = await response.json();
+                if (data.user) {
+                    currentUser.id = data.user.id;
+                    currentUser.interests = data.user.interests;
+                    persistSession();
+                }
+
+                if (interestsSaveFeedback) {
+                    interestsSaveFeedback.style.display = 'block';
+                    interestsSaveFeedback.textContent = '✓ ¡Tus aficiones se han guardado con éxito en la base de datos!';
+                    setTimeout(() => {
+                        interestsSaveFeedback.style.display = 'none';
+                        showScreen('dashboard');
+                    }, 1500);
+                } else {
+                    showScreen('dashboard');
+                }
+            } catch (err) {
+                console.error('Error al guardar intereses:', err);
+                showScreen('dashboard');
+            }
         });
     }
 
-    if (btnBackInterests) {
-        btnBackInterests.addEventListener('click', () => showScreen('dashboard'));
-    }
+    if (btnBackInterests) btnBackInterests.addEventListener('click', () => showScreen('dashboard'));
 });

@@ -92,10 +92,10 @@
                 </button>
             </div>
 
-            <!-- Botón de asistencia por voz inmediata -->
-            <button id="btn-voice-help" class="giant-help-button" type="button">
-                <span aria-hidden="true">🔊</span>
-                <span>Ayuda por Voz Inmediata</span>
+            <!-- Botón de asistencia / Chatbot de Ayuda Inmediata -->
+            <button id="btn-voice-help" class="giant-help-button" type="button" aria-label="Abrir Asistente de Ayuda">
+                <span aria-hidden="true">🤖</span>
+                <span>Asistente y Ayuda Inmediata</span>
             </button>
 
             <div id="help-message-box" class="help-message" style="display:none;" role="status" aria-live="polite"></div>
@@ -164,13 +164,11 @@
 
             <!-- Controles inferiores: SIGUIENTE y COLGAR (con doble confirmación) -->
             <footer class="call-controls-bar">
-                <!-- Botón SIGUIENTE (RF4: busca otro match sin salir) -->
                 <button id="btn-call-next" class="call-ctrl-button btn-next" type="button">
                     <span aria-hidden="true">⏭️</span>
                     <span>SIGUIENTE</span>
                 </button>
 
-                <!-- Botón COLGAR (RF3: abre el modal de confirmación) -->
                 <button id="btn-call-hangup" class="call-ctrl-button btn-hangup" type="button">
                     <span aria-hidden="true">☎️</span>
                     <span>COLGAR</span>
@@ -189,13 +187,60 @@
             <p class="modal-description">Si cuelgas ahora, se cortará la conversación con la otra persona.</p>
 
             <div class="modal-actions-stack">
-                <!-- Botón 1: Colgar de verdad -->
                 <button id="btn-confirm-hangup-yes" class="giant-button bg-danger-action" type="button">
                     <span>SÍ, COLGAR LLAMADA</span>
                 </button>
-                <!-- Botón 2: Continuar hablando -->
                 <button id="btn-confirm-hangup-no" class="giant-button bg-success-action" type="button">
                     <span>CONTINUAR HABLANDO</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MODAL DEL CHATBOT ASISTENTE DE AYUDA (CENTRO DE MANDO)   -->
+    <!-- ======================================================== -->
+    <div id="modal-assistant-chat" class="accessible-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="assistant-title">
+        <div class="accessible-modal-dialog assistant-modal-dialog">
+            <div class="assistant-modal-header">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="assistant-avatar-icon" aria-hidden="true">🤖</span>
+                    <div class="text-start">
+                        <h2 id="assistant-title" class="modal-title m-0">Asistente Conecta2</h2>
+                        <p class="modal-subtitle m-0">Resuelvo tus dudas por voz o texto</p>
+                    </div>
+                </div>
+                <button id="btn-close-assistant" class="btn-close-modal" type="button" aria-label="Cerrar asistente">✕</button>
+            </div>
+
+            <!-- Historial de mensajes del chatbot -->
+            <div id="assistant-chat-history" class="assistant-chat-history" aria-live="polite">
+                <div class="chat-bubble assistant">
+                    <p>¡Hola! Soy tu asistente de Conecta2. ¿Tienes alguna pregunta sobre cómo usar la app? Puedes pulsar una de las dudas frecuentes de abajo o pulsar el botón de hablar.</p>
+                </div>
+            </div>
+
+            <!-- Preguntas frecuentes rápidas de 1 clic -->
+            <div class="quick-questions-wrapper">
+                <span class="quick-title">Preguntas frecuentes (pulsa una para saber más):</span>
+                <div class="quick-buttons-row">
+                    <button class="quick-question-btn" type="button" data-q="¿Cómo inicio una videollamada?">📞 ¿Cómo llamo?</button>
+                    <button class="quick-question-btn" type="button" data-q="¿Cómo guardo un contacto?">⭐ ¿Guardar amigos?</button>
+                    <button class="quick-question-btn" type="button" data-q="¿Cómo cambio o añado mis gustos?">🎨 ¿Cambiar aficiones?</button>
+                    <button class="quick-question-btn" type="button" data-q="¿Qué hago si no se ve la cámara o no se escucha el micrófono?">📷 ¿Problema cámara/micro?</button>
+                    <button class="quick-question-btn" type="button" data-q="¿Es seguro y gratis?">🔒 ¿Es seguro y privado?</button>
+                </div>
+            </div>
+
+            <!-- Fila de entrada por voz o texto -->
+            <div class="assistant-input-row">
+                <button id="btn-assistant-voice" class="btn-assistant-voice" type="button" aria-label="Preguntar con mi voz">
+                    <span class="mic-icon-sm" aria-hidden="true">🎙️</span>
+                    <span id="btn-assistant-voice-label">HABLAR</span>
+                </button>
+                <input type="text" id="input-assistant-text" class="form-control giant-input flex-1" placeholder="Escribe tu pregunta aquí..." autocomplete="off">
+                <button id="btn-assistant-send" class="btn-assistant-send" type="button" aria-label="Enviar pregunta">
+                    <span>ENVIAR</span>
                 </button>
             </div>
         </div>
@@ -216,7 +261,6 @@
                 <div class="summary-avatar" aria-hidden="true">👤</div>
                 <p class="save-contact-prompt">¿Quieres guardar a esta persona en tus contactos para volver a hablar en el futuro?</p>
 
-                <!-- BOTÓN PRINCIPAL: GUARDAR CONTACTO (RF5, T09) -->
                 <button id="btn-save-contact" class="giant-button bg-success-action" type="button">
                     <span aria-hidden="true">⭐</span>
                     <span>GUARDAR EN MIS CONTACTOS</span>
@@ -244,7 +288,6 @@
             <p class="subtitle">Personas con las que has conectado y guardado.</p>
 
             <div id="contacts-list-container" class="contacts-list" aria-live="polite">
-                <!-- Se cargan dinámicamente -->
                 <p class="empty-state">No tienes contactos guardados todavía.</p>
             </div>
 
@@ -255,7 +298,7 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 7. PANTALLA: MIS INTERESES (EDICIÓN Y VOZ)               -->
+    <!-- 7. PANTALLA: MIS INTERESES (EDICIÓN DINÁMICA Y VOZ)      -->
     <!-- ======================================================== -->
     <section id="screen-interests" class="screen" aria-labelledby="interests-title">
         <div class="screen-content">
@@ -264,52 +307,45 @@
                 <h1 id="interests-title" class="screen-title">Mis Intereses</h1>
             </header>
 
-            <p class="subtitle">Pulsa sobre tus gustos para activarlos o desactivarlos:</p>
+            <p class="subtitle">Tus aficiones guardadas se usan para buscarte personas compatibles:</p>
 
-            <div id="interests-grid" class="interests-toggle-grid">
-                <!-- Opciones interactivas con estados de alto contraste -->
-                <button class="interest-toggle-btn active" data-tag="jardinería" type="button" aria-pressed="true">
-                    <span class="check-mark">✓</span>
-                    <span>Jardinería</span>
-                </button>
-                <button class="interest-toggle-btn active" data-tag="paseos" type="button" aria-pressed="true">
-                    <span class="check-mark">✓</span>
-                    <span>Paseos</span>
-                </button>
-                <button class="interest-toggle-btn active" data-tag="música" type="button" aria-pressed="true">
-                    <span class="check-mark">✓</span>
-                    <span>Música</span>
-                </button>
-                <button class="interest-toggle-btn" data-tag="cocina" type="button" aria-pressed="false">
-                    <span class="check-mark">+</span>
-                    <span>Cocina</span>
-                </button>
-                <button class="interest-toggle-btn" data-tag="tejer" type="button" aria-pressed="false">
-                    <span class="check-mark">+</span>
-                    <span>Tejer</span>
-                </button>
-                <button class="interest-toggle-btn" data-tag="lectura" type="button" aria-pressed="false">
-                    <span class="check-mark">+</span>
-                    <span>Lectura</span>
-                </button>
-                <button class="interest-toggle-btn" data-tag="naturaleza" type="button" aria-pressed="false">
-                    <span class="check-mark">+</span>
-                    <span>Naturaleza</span>
-                </button>
-                <button class="interest-toggle-btn" data-tag="animales" type="button" aria-pressed="false">
-                    <span class="check-mark">+</span>
-                    <span>Animales</span>
+            <!-- Aficiones activas del usuario (con botón de eliminar ✖) -->
+            <div class="current-interests-card">
+                <label class="form-label font-bold">Tus aficiones actuales (pulsa ✖ para quitar):</label>
+                <div id="my-active-interests-list" class="tags-container active-tags-editable" aria-live="polite">
+                    <!-- Se renderizan dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Añadir nueva afición escribiendo o por voz -->
+            <div class="add-interest-card mt-3">
+                <label for="input-custom-interest" class="form-label font-bold">Añadir una nueva afición:</label>
+                <div class="add-interest-row">
+                    <input type="text" id="input-custom-interest" class="form-control giant-input flex-1" placeholder="Ej: pintura, dominó, cine..." autocomplete="off">
+                    <button id="btn-add-custom-interest" class="btn-add-interest-action" type="button">
+                        <span>➕ AÑADIR</span>
+                    </button>
+                </div>
+
+                <button id="btn-add-interest-voice" class="giant-voice-button mt-3" type="button">
+                    <span class="mic-icon" aria-hidden="true">🎙️</span>
+                    <span id="btn-add-interest-voice-text">Pulsar y decir afición por voz</span>
                 </button>
             </div>
 
-            <!-- Botón para añadir interés por voz -->
-            <button id="btn-add-interest-voice" class="giant-voice-button mt-4" type="button">
-                <span class="mic-icon" aria-hidden="true">🎙️</span>
-                <span>Decir afición por voz</span>
-            </button>
+            <!-- Sugerencias populares de 1 clic -->
+            <div class="suggestions-card mt-3">
+                <label class="form-label font-bold">Sugerencias populares (pulsa para añadir o quitar):</label>
+                <div id="suggested-interests-grid" class="interests-toggle-grid">
+                    <!-- Botones de sugerencias renderizados dinámicamente -->
+                </div>
+            </div>
+
+            <!-- Mensaje de confirmación de guardado -->
+            <div id="interests-save-feedback" class="feedback-message text-center mt-3" style="display:none;" role="status" aria-live="polite"></div>
 
             <button id="btn-save-interests" class="giant-button bg-success-action mt-3" type="button">
-                <span>GUARDAR INTERESES</span>
+                <span>💾 GUARDAR CAMBIOS</span>
             </button>
         </div>
     </section>

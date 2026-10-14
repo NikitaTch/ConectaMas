@@ -59,8 +59,6 @@ socketio = SocketIO(
 )
 
 # Estructura en memoria para la señalización de llamadas:
-# waiting_clients: lista de dicts { 'sid': str, 'user_id': int, 'nombre': str, 'interests': list[str] }
-# active_peers: dict mapeando sid -> { 'room': str, 'peer_sid': str, 'user_id': int, 'nombre': str }
 waiting_clients = []
 active_peers = {}
 
@@ -75,11 +73,9 @@ def handle_disconnect():
     from flask import request
     sid = request.sid
 
-    # Si estaba en lista de espera, retirarlo
     global waiting_clients
     waiting_clients = [c for c in waiting_clients if c['sid'] != sid]
 
-    # Si estaba en una llamada activa, avisar al interlocutor
     if sid in active_peers:
         peer_info = active_peers.pop(sid, None)
         if peer_info:
@@ -90,38 +86,41 @@ def handle_disconnect():
                 emit('peer_left', {'message': 'Tu interlocutor ha abandonado la llamada.'}, room=peer_sid)
 
 
-@socketio.on('join_call')
-def handle_join_call(data):
+def process_join(sid, data):
     """
-    Un usuario entra en la sala de llamadas.
-    El servidor busca entre los clientes que están esperando al más compatible según intereses,
-    o al siguiente en cola si no hay coincidencias exactas.
+    Gestiona la entrada de un cliente a la cola y el emparejamiento por afinidad.
+    Permite tanto emparejar distintos usuarios como conectar pestañas locales en pruebas.
     """
-    from flask import request
-    sid = request.sid
     user_id = data.get('user_id')
     user_nombre = data.get('nombre', 'Usuario')
     user_interests = data.get('interests', [])
 
-    # Limpiar cualquier estado previo del cliente
     global waiting_clients
     waiting_clients = [c for c in waiting_clients if c['sid'] != sid]
     if sid in active_peers:
         active_peers.pop(sid, None)
 
-    # Buscar entre los clientes esperando (excluyendo conexiones duplicadas del mismo usuario si las hubiera)
     best_candidate = None
     best_score = -1.0
 
+    # Prioridad 1: Candidato con socket distinto y preferiblemente usuario distinto
     for candidate in waiting_clients:
-        if candidate['user_id'] != user_id:
-            score, _ = calculate_affinity_score(user_interests, candidate.get('interests', []))
-            if score > best_score:
-                best_score = score
+        if candidate['sid'] != sid:
+            if user_id is None or candidate.get('user_id') != user_id:
+                score, _ = calculate_affinity_score(user_interests, candidate.get('interests', []))
+                if score > best_score:
+                    best_score = score
+                    best_candidate = candidate
+
+    # Prioridad 2: Si no hay usuario distinto, permitir emparejar cualquier pestaña abierta en espera
+    if best_candidate is None:
+        for candidate in waiting_clients:
+            if candidate['sid'] != sid:
                 best_candidate = candidate
+                best_score = 0.0
+                break
 
     if best_candidate is None:
-        # Nadie disponible en este instante; ponerse en cola de espera
         waiting_clients.append({
             'sid': sid,
             'user_id': user_id,
@@ -130,9 +129,8 @@ def handle_join_call(data):
         })
         emit('waiting', {
             'message': 'Buscando a otra persona compatible para conectar…'
-        })
+        }, room=sid)
     else:
-        # Emparejar al usuario con el mejor candidato disponible
         waiting_clients.remove(best_candidate)
         room_id = f"room_{uuid.uuid4().hex[:10]}"
 
@@ -146,7 +144,6 @@ def handle_join_call(data):
         active_peers[sid] = {'room': room_id, 'peer_sid': peer_sid, 'user_id': peer_id, 'nombre': peer_nombre}
         active_peers[peer_sid] = {'room': room_id, 'peer_sid': sid, 'user_id': user_id, 'nombre': user_nombre}
 
-        # Notificar a ambos clientes que están conectados
         emit('matched', {
             'room': room_id,
             'initiator': True,
@@ -164,12 +161,14 @@ def handle_join_call(data):
         }, room=peer_sid)
 
 
+@socketio.on('join_call')
+def handle_join_call(data):
+    from flask import request
+    process_join(request.sid, data)
+
+
 @socketio.on('signal')
 def handle_signal(data):
-    """
-    Reenvía paquetes de señalización WebRTC (Offer, Answer, ICE Candidates)
-    al otro participante en el room.
-    """
     from flask import request
     sid = request.sid
     peer_info = active_peers.get(sid)
@@ -181,9 +180,6 @@ def handle_signal(data):
 
 @socketio.on('next_peer')
 def handle_next_peer(data):
-    """
-    RF4: El usuario pulsa 'Siguiente' para buscar otro match sin salir de la vista de vídeo.
-    """
     from flask import request
     sid = request.sid
 
@@ -198,15 +194,11 @@ def handle_next_peer(data):
                 leave_room(room, sid=peer_sid)
                 emit('peer_left', {'message': 'Tu interlocutor ha pasado al siguiente participante.'}, room=peer_sid)
 
-    # Volver a entrar en la cola
-    handle_join_call(data)
+    process_join(sid, data)
 
 
 @socketio.on('hangup')
 def handle_hangup(data):
-    """
-    RF3 & T08: Al colgar tras la confirmación, cierra la videollamada y libera los recursos.
-    """
     from flask import request
     sid = request.sid
 
@@ -223,6 +215,5 @@ def handle_hangup(data):
 
 
 if __name__ == '__main__':
-    # Ejecución local en el puerto 5000 o configurable
     print("Iniciando Conecta2 en http://localhost:5000...")
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

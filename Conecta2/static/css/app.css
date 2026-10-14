@@ -874,3 +874,259 @@ button:focus-visible, a:focus-visible, input:focus-visible {
     border-color: #16a34a;
     color: #ffffff;
 }
+
+/* ==========================================================================
+   ESTILOS ADICIONALES: GESTIÓN DE INTERESES Y CHATBOT ASISTENTE
+   ========================================================================== */
+
+/* Tarjetas y componentes de Mis Intereses */
+.current-interests-card,
+.add-interest-card,
+.suggestions-card {
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.active-tags-editable {
+    min-height: 60px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.tag-badge-editable {
+    background-color: #dbeafe;
+    color: #1e3a8a;
+    border: 2px solid #93c5fd;
+    border-radius: 24px;
+    padding: 10px 16px 10px 20px;
+    font-size: 22px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tag-remove-btn {
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.tag-remove-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.add-interest-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.btn-add-interest-action {
+    min-height: 64px;
+    min-width: 140px;
+    border: none;
+    border-radius: 16px;
+    background-color: var(--color-primary);
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+    transition: all 0.15s ease;
+}
+
+.btn-add-interest-action:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* Modal del Asistente Virtual / Chatbot */
+.assistant-modal-dialog {
+    max-width: 620px;
+    padding: 24px;
+    border-color: #2563eb;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.assistant-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+}
+
+.assistant-avatar-icon {
+    font-size: 48px;
+}
+
+.modal-subtitle {
+    font-size: 18px;
+    color: #475569;
+}
+
+.btn-close-modal {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #cbd5e1;
+    border-radius: 14px;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-size: 24px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.assistant-chat-history {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 320px;
+    min-height: 180px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.chat-bubble {
+    padding: 14px 18px;
+    border-radius: 18px;
+    font-size: 21px;
+    line-height: 1.45;
+    max-width: 88%;
+}
+
+.chat-bubble.assistant {
+    background-color: #e0f2fe;
+    border: 2px solid #bae6fd;
+    color: #0369a1;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user {
+    background-color: #1e40af;
+    color: #ffffff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-bubble p {
+    margin: 0;
+}
+
+.quick-questions-wrapper {
+    margin-bottom: 14px;
+    text-align: left;
+}
+
+.quick-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #475569;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.quick-buttons-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.quick-question-btn {
+    border: 2px solid #94a3b8;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.quick-question-btn:hover {
+    background: #f1f5f9;
+    border-color: #2563eb;
+    color: #1d4ed8;
+}
+
+.assistant-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-assistant-voice {
+    min-height: 64px;
+    padding: 0 16px;
+    border: 2px solid #0284c7;
+    background: #0284c7;
+    color: #ffffff;
+    border-radius: 16px;
+    font-size: 19px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.btn-assistant-voice.listening {
+    background: #dc2626;
+    border-color: #b91c1c;
+    animation: pulse 1.5s infinite;
+}
+
+.mic-icon-sm {
+    font-size: 26px;
+}
+
+.btn-assistant-send {
+    min-height: 64px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 16px;
+    background: var(--color-success);
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.btn-assistant-send:hover {
+    background: var(--color-success-dark);
+}
