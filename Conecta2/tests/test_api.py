@@ -164,6 +164,23 @@ def test_auth_register_invalid(client):
     assert res3.status_code == 400
 
 
+def test_auth_register_default_pin(client):
+    # Registrar sin especificar PIN debe asignar 1234 y funcionar correctamente
+    res = client.post('/api/auth/register', json={
+        'nombre': 'Rosa',
+        'interests': ['tejer']
+    })
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data['status'] == 'success'
+    u_id = data['user']['id']
+
+    # Probar que el PIN asignado por defecto es 1234
+    res_login = client.post('/api/auth/login_pin', json={'user_id': u_id, 'pin': '1234'})
+    assert res_login.status_code == 200
+
+
+
 def test_auth_login_pin(client):
     reg = client.post('/api/auth/register', json={'nombre': 'Lucia', 'pin': '5678'})
     u_id = reg.get_json()['user']['id']

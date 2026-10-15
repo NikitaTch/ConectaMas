@@ -1,0 +1,24 @@
+# Compilación .NET
+bin/
+obj/
+
+# Entornos virtuales Python
+.venv/
+venv/
+env/
+
+# Caché de Python
+__pycache__/
+*.py[cod]
+
+# Bases de datos locales
+*.db
+*.sqlite3
+
+# Pruebas y caché
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Variables de entorno
+.env

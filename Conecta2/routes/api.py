@@ -20,16 +20,21 @@ def auth_register():
     """
     Registra a un nuevo usuario con su nombre, PIN de 4 dígitos e intereses.
     Genera y devuelve un device_token para recordar el dispositivo (Opción 3).
+    Si el PIN no se especifica, se asigna '1234' por defecto.
     """
     data = request.get_json(silent=True) or {}
     nombre = data.get('nombre', '').strip()
-    pin = str(data.get('pin', '')).strip()
+    pin_raw = data.get('pin')
+    pin = str(pin_raw).strip() if pin_raw is not None else ''
     intereses_input = data.get('interests', [])
 
     if not nombre:
         return jsonify({'error': 'Debes indicar tu nombre de pila o apodo'}), 400
 
-    if not pin or len(pin) != 4 or not pin.isdigit():
+    # Si no se indica PIN o está vacío, asignar PIN '1234' por defecto para que nunca se quede bloqueado
+    if not pin or pin == 'None':
+        pin = '1234'
+    elif len(pin) != 4 or not pin.isdigit():
         return jsonify({'error': 'El código PIN debe tener exactamente 4 números'}), 400
 
     user = User(nombre=nombre)

@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnGotoOnboarding) {
         btnGotoOnboarding.addEventListener('click', () => {
             if (inputNombre) inputNombre.value = '';
-            if (inputOnboardingPin) inputOnboardingPin.value = '';
+            if (inputOnboardingPin) inputOnboardingPin.value = '1234';
             currentUser = { id: null, nombre: 'Amigo/a', interests: ['paseos', 'música'] };
             renderDetectedTags(currentUser.interests);
             if (onboardingErrorBox) onboardingErrorBox.style.display = 'none';
@@ -354,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDetectedTags(tags) {
         if (!detectedTagsContainer) return;
         detectedTagsContainer.innerHTML = '';
+        if (!tags || !Array.isArray(tags)) return;
         tags.forEach(tag => {
             const span = document.createElement('span');
             span.className = 'tag-badge';
@@ -364,24 +365,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnContinueDashboard) {
         btnContinueDashboard.addEventListener('click', async () => {
-            const nombre = inputNombre ? inputNombre.value.trim() : '';
-            const pin = inputOnboardingPin ? inputOnboardingPin.value.trim() : '';
-
+            let nombre = inputNombre ? inputNombre.value.trim() : '';
             if (!nombre) {
-                if (onboardingErrorBox) {
-                    onboardingErrorBox.textContent = 'Por favor, escribe tu nombre o dilo con el botón de hablar.';
-                    onboardingErrorBox.style.display = 'block';
-                }
-                VoiceManager.speak('Por favor, indica tu nombre.');
-                return;
+                nombre = 'Amigo/a';
             }
 
-            if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+            let pin = inputOnboardingPin ? inputOnboardingPin.value.trim() : '';
+            if (!pin) {
+                pin = '1234'; // Asigna PIN por defecto para máxima facilidad y evitar bloqueos
+            } else if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
                 if (onboardingErrorBox) {
-                    onboardingErrorBox.textContent = 'Elige un código PIN de 4 números (por ejemplo: 1234).';
+                    onboardingErrorBox.textContent = 'El código PIN debe tener 4 números (o déjalo vacío para usar 1234).';
                     onboardingErrorBox.style.display = 'block';
                 }
-                VoiceManager.speak('Elige un código PIN de cuatro números.');
+                VoiceManager.speak('El código PIN debe tener cuatro números o déjalo vacío.');
                 return;
             }
 
@@ -395,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({
                         nombre: nombre,
                         pin: pin,
-                        interests: currentUser.interests
+                        interests: currentUser.interests || ['paseos', 'música']
                     })
                 });
                 const resData = await response.json();
@@ -416,6 +413,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (e) {
                 console.error('Error al registrar usuario:', e);
+                if (onboardingErrorBox) {
+                    onboardingErrorBox.textContent = 'Error de conexión al crear el usuario. Comprueba que el servidor esté activo.';
+                    onboardingErrorBox.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Permitir pulsar Enter en los campos de onboarding para continuar
+    if (inputNombre) {
+        inputNombre.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (inputOnboardingPin && !inputOnboardingPin.value) {
+                    inputOnboardingPin.focus();
+                } else if (btnContinueDashboard) {
+                    btnContinueDashboard.click();
+                }
+            }
+        });
+    }
+    if (inputOnboardingPin) {
+        inputOnboardingPin.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (btnContinueDashboard) btnContinueDashboard.click();
             }
         });
     }
