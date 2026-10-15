@@ -135,3 +135,78 @@ def test_api_assistant_chat(client):
     assert data['status'] == 'success'
     assert 'answer' in data
     assert 'INICIAR LLAMADA' in data['answer'] or 'botón verde' in data['answer'].lower()
+
+
+def test_auth_register(client):
+    res = client.post('/api/auth/register', json={
+        'nombre': 'Manolo',
+        'pin': '4321',
+        'interests': ['paseos', 'huerto']
+    })
+    assert res.status_code == 201
+    data = res.get_json()
+    assert data['status'] == 'success'
+    assert 'device_token' in data
+    assert data['user']['nombre'] == 'Manolo'
+    assert 'huerto' in data['user']['interests']
+
+
+def test_auth_register_invalid(client):
+    # Sin nombre
+    res1 = client.post('/api/auth/register', json={'pin': '1234'})
+    assert res1.status_code == 400
+
+    # PIN inválido (menos de 4 dígitos o letras)
+    res2 = client.post('/api/auth/register', json={'nombre': 'Pepe', 'pin': '12'})
+    assert res2.status_code == 400
+
+    res3 = client.post('/api/auth/register', json={'nombre': 'Pepe', 'pin': 'abcd'})
+    assert res3.status_code == 400
+
+
+def test_auth_login_pin(client):
+    reg = client.post('/api/auth/register', json={'nombre': 'Lucia', 'pin': '5678'})
+    u_id = reg.get_json()['user']['id']
+
+    # Login correcto
+    res_ok = client.post('/api/auth/login_pin', json={'user_id': u_id, 'pin': '5678'})
+    assert res_ok.status_code == 200
+    data_ok = res_ok.get_json()
+    assert data_ok['status'] == 'success'
+    assert 'device_token' in data_ok
+
+    # Login con PIN erróneo
+    res_err = client.post('/api/auth/login_pin', json={'user_id': u_id, 'pin': '0000'})
+    assert res_err.status_code == 401
+    assert 'PIN no es correcto' in res_err.get_json()['message']
+
+
+def test_auth_validate_token_and_logout(client):
+    reg = client.post('/api/auth/register', json={'nombre': 'Andrés', 'pin': '9876'})
+    token = reg.get_json()['device_token']
+
+    # Validar token válido
+    res_valid = client.post('/api/auth/validate_token', json={'device_token': token})
+    assert res_valid.status_code == 200
+    assert res_valid.get_json()['user']['nombre'] == 'Andrés'
+
+    # Validar token inexistente
+    res_invalid = client.post('/api/auth/validate_token', json={'device_token': 'inventado_123'})
+    assert res_invalid.status_code == 401
+
+    # Logout
+    res_logout = client.post('/api/auth/logout', json={'device_token': token})
+    assert res_logout.status_code == 200
+
+    # El token ya no debe ser válido
+    res_after = client.post('/api/auth/validate_token', json={'device_token': token})
+    assert res_after.status_code == 401
+
+
+def test_auth_users_list(client):
+    client.post('/api/auth/register', json={'nombre': 'Beatriz', 'pin': '1111'})
+    res = client.get('/api/auth/users_list')
+    assert res.status_code == 200
+    users = res.get_json()['users']
+    assert any(u['nombre'] == 'Beatriz' and u['has_pin'] is True for u in users)
+

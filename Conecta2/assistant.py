@@ -12,11 +12,11 @@ import re
 KNOWLEDGE_BASE = [
     {
         'keywords': ['llamar', 'llamada', 'videollamada', 'empezar', 'iniciar', 'conectar', 'hablar'],
-        'answer': 'Para iniciar una videollamada, ve al Centro de Mando y pulsa el botón verde gigante que dice "INICIAR LLAMADA". El sistema buscará automáticamente a una persona con aficiones parecidas a las tuyas y os conectará.'
+        'answer': 'Para iniciar una videollamada, ve al Menú principal y pulsa el botón verde gigante que dice "INICIAR LLAMADA". El sistema buscará automáticamente a una persona con aficiones parecidas a las tuyas y os conectará.'
     },
     {
         'keywords': ['interes', 'intereses', 'gustos', 'aficion', 'aficiones', 'pasatiempo', 'cambiar gustos'],
-        'answer': 'Puedes ver y añadir tus gustos en el botón "Mis Intereses" del Centro de Mando. Allí puedes escribir nuevas aficiones, pulsar el micrófono para decirlas con tu voz, o pulsar las sugerencias para activarlas. No olvides pulsar "Guardar Cambios".'
+        'answer': 'Puedes ver y añadir tus gustos en el botón "Mis Intereses" del Menú principal. Allí puedes escribir nuevas aficiones, pulsar el micrófono para decirlas con tu voz, o pulsar las sugerencias para activarlas. No olvides pulsar "Guardar Cambios".'
     },
     {
         'keywords': ['contacto', 'contactos', 'guardar', 'amigo', 'amigos'],
@@ -66,7 +66,7 @@ def ask_assistant(question: str) -> str:
                 "Reglas para tu respuesta:\n"
                 "- Tono cálido, muy respetuoso, claro y comprensivo (trátales de usted o de forma muy cariñosa y cercana).\n"
                 "- Respuestas breves (máximo 3 o 4 frases sencillas, sin tecnicismos).\n"
-                "- Conecta2 tiene: Centro de Mando, Botón verde gigante 'Iniciar llamada', 'Mis Intereses' para aficiones, "
+                "- Conecta2 tiene: Menú principal, Botón verde gigante 'Iniciar llamada', 'Mis Intereses' para aficiones, "
                 "'Mis Contactos' para amigos guardados, videollamadas con botón 'Siguiente' y 'Colgar' con confirmación.\n\n"
                 f"Pregunta del usuario mayor: {clean_q}"
             )

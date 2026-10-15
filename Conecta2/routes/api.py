@@ -1,6 +1,6 @@
 """
 Rutas de la API REST para Conecta2
-Cumple con los requisitos RF1, RF2, RF4 y RF5 de spec.md y tareas T04, T06 y T09 de tasks.md.
+Cumple con los requisitos RF1, RF2, RF4, RF5 y autenticación con PIN de spec.md y tareas T04, T06 y T09 de tasks.md.
 """
 
 from flask import Blueprint, jsonify, request
@@ -10,6 +10,165 @@ from assistant import ask_assistant
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
+
+# ========================================================
+# ENDPOINTS DE AUTENTICACIÓN ACCESIBLE (OPCIÓN 3 + PIN)
+# ========================================================
+
+@api_bp.route('/auth/register', methods=['POST'])
+def auth_register():
+    """
+    Registra a un nuevo usuario con su nombre, PIN de 4 dígitos e intereses.
+    Genera y devuelve un device_token para recordar el dispositivo (Opción 3).
+    """
+    data = request.get_json(silent=True) or {}
+    nombre = data.get('nombre', '').strip()
+    pin = str(data.get('pin', '')).strip()
+    intereses_input = data.get('interests', [])
+
+    if not nombre:
+        return jsonify({'error': 'Debes indicar tu nombre de pila o apodo'}), 400
+
+    if not pin or len(pin) != 4 or not pin.isdigit():
+        return jsonify({'error': 'El código PIN debe tener exactamente 4 números'}), 400
+
+    user = User(nombre=nombre)
+    user.set_pin(pin)
+    token = user.issue_device_token()
+    db.session.add(user)
+    db.session.flush()
+
+    tags_set = set()
+    if isinstance(intereses_input, list):
+        for item in intereses_input:
+            if isinstance(item, str) and item.strip():
+                tags_set.add(item.strip().lower())
+    if not tags_set:
+        tags_set = {'paseos', 'música'}
+
+    for tag in tags_set:
+        db.session.add(Interest(user_id=user.id, palabra_clave=tag))
+
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': f'¡Bienvenido/a, {user.nombre}! Tu perfil se ha creado correctamente.',
+        'user': user.to_dict(),
+        'device_token': token
+    }), 201
+
+
+@api_bp.route('/auth/login_pin', methods=['POST'])
+def auth_login_pin():
+    """
+    Valida el PIN de 4 números para un usuario (Opción 1).
+    Si es correcto, emite un nuevo device_token para recordar la sesión.
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = data.get('user_id')
+    nombre = data.get('nombre', '').strip()
+    pin = str(data.get('pin', '')).strip()
+
+    if not pin:
+        return jsonify({'error': 'Introduce tu código PIN de 4 números'}), 400
+
+    user = None
+    if user_id:
+        try:
+            user = db.session.get(User, int(user_id))
+        except (ValueError, TypeError):
+            pass
+    elif nombre:
+        user = User.query.filter(db.func.lower(User.nombre) == nombre.lower()).first()
+
+    if not user:
+        return jsonify({'error': 'Usuario no encontrado'}), 404
+
+    if not user.check_pin(pin):
+        return jsonify({
+            'status': 'error',
+            'message': 'El código PIN no es correcto. Inténtalo de nuevo con calma.'
+        }), 401
+
+    token = user.issue_device_token()
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': f'¡Hola de nuevo, {user.nombre}!',
+        'user': user.to_dict(),
+        'device_token': token
+    }), 200
+
+
+@api_bp.route('/auth/validate_token', methods=['POST'])
+def auth_validate_token():
+    """
+    Opción 3: Valida el device_token almacenado en el navegador del usuario.
+    Si coincide, entra directamente al Menú principal sin teclear nada.
+    """
+    data = request.get_json(silent=True) or {}
+    token = data.get('device_token', '').strip()
+
+    if not token:
+        return jsonify({'status': 'invalid', 'message': 'Token no proporcionado'}), 401
+
+    user = User.query.filter_by(device_token=token).first()
+    if not user:
+        return jsonify({'status': 'invalid', 'message': 'Dispositivo no reconocido o sesión cerrada'}), 401
+
+    return jsonify({
+        'status': 'success',
+        'user': user.to_dict(),
+        'device_token': token
+    }), 200
+
+
+@api_bp.route('/auth/users_list', methods=['GET'])
+def auth_users_list():
+    """
+    Devuelve la lista de usuarios para el selector visual de cuentas.
+    """
+    users = User.query.order_by(User.nombre.asc()).all()
+    return jsonify({
+        'users': [{
+            'id': u.id,
+            'nombre': u.nombre,
+            'has_pin': bool(u.pin_hash),
+            'interests': [i.palabra_clave for i in u.interests]
+        } for u in users]
+    }), 200
+
+
+@api_bp.route('/auth/logout', methods=['POST'])
+def auth_logout():
+    """
+    Cierra sesión y desvincula el dispositivo actual.
+    """
+    data = request.get_json(silent=True) or {}
+    token = data.get('device_token', '').strip()
+    user_id = data.get('user_id')
+
+    user = None
+    if token:
+        user = User.query.filter_by(device_token=token).first()
+    elif user_id:
+        user = db.session.get(User, int(user_id))
+
+    if user:
+        user.device_token = None
+        db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'message': 'Sesión cerrada. Dispositivo desvinculado.'
+    }), 200
+
+
+# ========================================================
+# ENDPOINTS DE PERFIL, INTERESES Y MATCHING
+# ========================================================
 
 @api_bp.route('/extract_tags', methods=['POST'])
 def extract_tags():
@@ -38,6 +197,7 @@ def save_profile():
     data = request.get_json(silent=True) or {}
     user_id = data.get('user_id') or data.get('id')
     nombre = data.get('nombre', '').strip()
+    pin = str(data.get('pin', '')).strip()
     intereses_input = data.get('interests', [])
     speech_text = data.get('speech_text', '').strip()
 
@@ -62,15 +222,19 @@ def save_profile():
             if existing_user:
                 if nombre:
                     existing_user.nombre = nombre
+                if pin and len(pin) == 4 and pin.isdigit():
+                    existing_user.set_pin(pin)
                 # Reemplazar intereses
                 Interest.query.filter_by(user_id=existing_user.id).delete()
                 for tag in tags_set:
                     db.session.add(Interest(user_id=existing_user.id, palabra_clave=tag))
+                token = existing_user.issue_device_token()
                 db.session.commit()
                 return jsonify({
                     'status': 'success',
                     'message': f'Perfil de {existing_user.nombre} actualizado correctamente.',
-                    'user': existing_user.to_dict()
+                    'user': existing_user.to_dict(),
+                    'device_token': token
                 }), 200
         except (ValueError, TypeError):
             pass
@@ -80,6 +244,9 @@ def save_profile():
         nombre = "Amigo/a Conecta2"
 
     user = User(nombre=nombre)
+    if pin and len(pin) == 4 and pin.isdigit():
+        user.set_pin(pin)
+    token = user.issue_device_token()
     db.session.add(user)
     db.session.flush()
 
@@ -92,7 +259,8 @@ def save_profile():
     return jsonify({
         'status': 'success',
         'message': f'Perfil de {user.nombre} guardado correctamente.',
-        'user': user.to_dict()
+        'user': user.to_dict(),
+        'device_token': token
     }), 201
 
 
@@ -120,7 +288,6 @@ def update_user_interests(user_id):
     if not new_tags:
         new_tags = ['paseos', 'música']
 
-    # Actualizar intereses en BD
     Interest.query.filter_by(user_id=user.id).delete()
     for tag in new_tags:
         db.session.add(Interest(user_id=user.id, palabra_clave=tag))
@@ -176,7 +343,6 @@ def save_contact():
     if user_id == contact_id:
         return jsonify({'error': 'No puedes agregarte a ti mismo como contacto'}), 400
 
-    # Comprobar si ya existe la relación
     existing = Contact.query.filter_by(user_id=user_id, contact_id=contact_id).first()
     if existing:
         return jsonify({
@@ -209,7 +375,7 @@ def list_contacts(user_id):
 @api_bp.route('/assistant/chat', methods=['POST'])
 def assistant_chat():
     """
-    Chatbot de ayuda accesible para el Centro de Mando.
+    Chatbot de ayuda accesible para el Menú principal.
     Responde dudas sobre el funcionamiento de Conecta2 por voz o texto.
     """
     data = request.get_json(silent=True) or {}
@@ -240,6 +406,7 @@ def seed_demo_users():
         existing = User.query.filter_by(nombre=profile["nombre"]).first()
         if not existing:
             u = User(nombre=profile["nombre"])
+            u.set_pin("1234")
             db.session.add(u)
             db.session.flush()
             for kw in profile["interests"]:

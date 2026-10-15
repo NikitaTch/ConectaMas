@@ -291,7 +291,7 @@ button:focus-visible, a:focus-visible, input:focus-visible {
     font-weight: 700;
 }
 
-/* PANTALLA 2: CENTRO DE MANDO */
+/* PANTALLA 2: MENÚ PRINCIPAL */
 .dashboard-header {
     display: flex;
     justify-content: space-between;
@@ -1130,3 +1130,184 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 .btn-assistant-send:hover {
     background: var(--color-success-dark);
 }
+
+/* ==========================================================================
+   PANTALLA 0: INICIO DE SESIÓN Y TECLADO NUMÉRICO TÁCTIL (ACCESIBILIDAD 65+)
+   ========================================================================== */
+
+.login-brand-icon {
+    font-size: 56px;
+    margin-bottom: 8px;
+}
+
+.users-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.user-card-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    border: 3px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 18px 20px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-card-btn:hover, .user-card-btn:focus-visible {
+    border-color: var(--color-primary);
+    background-color: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(29, 78, 216, 0.15);
+}
+
+.avatar-circle {
+    width: 60px;
+    height: 60px;
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    flex-shrink: 0;
+}
+
+.avatar-circle-sm {
+    width: 48px;
+    height: 48px;
+    background: #e0f2fe;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+.user-card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-card-name {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-text-main);
+    line-height: 1.2;
+}
+
+.user-card-tag {
+    font-size: 16px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+}
+
+.selected-user-header {
+    position: relative;
+    padding: 8px 0;
+}
+
+/* VISOR DE PUNTOS DE PIN (4 DÍGITOS) */
+.pin-display-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.pin-dots-display {
+    display: flex;
+    gap: 18px;
+    padding: 12px 24px;
+    background: #f1f5f9;
+    border-radius: 24px;
+    border: 2px solid #cbd5e1;
+}
+
+.pin-dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid #94a3b8;
+    transition: all 0.15s ease;
+}
+
+.pin-dot.filled {
+    background: #1e3a8a;
+    border-color: #1e3a8a;
+    transform: scale(1.15);
+    box-shadow: 0 0 8px rgba(30, 58, 138, 0.4);
+}
+
+/* TECLADO TÁCTIL GIGANTE (MÍNIMO 72px) */
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 440px;
+    margin: 0 auto;
+}
+
+.keypad-btn {
+    min-height: 76px;
+    font-size: 32px;
+    font-weight: 800;
+    color: #0f172a;
+    background: #ffffff;
+    border: 3px solid #94a3b8;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.keypad-btn:hover {
+    background: #f8fafc;
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.keypad-btn:active {
+    background: #e2e8f0;
+    transform: translateY(2px);
+}
+
+.keypad-btn-backspace {
+    font-size: 19px;
+    font-weight: 700;
+    background: #fee2e2;
+    border-color: #f87171;
+    color: #991b1b;
+}
+
+.keypad-btn-backspace:hover {
+    background: #fecaca;
+    border-color: #dc2626;
+}
+
+.keypad-btn-enter {
+    font-size: 20px;
+    font-weight: 800;
+    background: #dcfce7;
+    border-color: #4ade80;
+    color: #166534;
+}
+
+.keypad-btn-enter:hover {
+    background: #bbf7d0;
+    border-color: #16a34a;
+}
+

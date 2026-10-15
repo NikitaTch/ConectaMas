@@ -20,34 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let lastSpokenCandidate = null;
 
-    // Cargar usuario persistido en localStorage si existe
-    function loadSavedSession() {
-        try {
-            const saved = localStorage.getItem('conecta2_current_user');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                if (parsed && parsed.id) {
-                    currentUser = parsed;
-                    const greeting = document.getElementById('user-greeting');
-                    if (greeting) greeting.textContent = `Hola, ${currentUser.nombre}`;
-                    const inputNombre = document.getElementById('input-nombre');
-                    if (inputNombre) inputNombre.value = currentUser.nombre;
-                    renderDetectedTags(currentUser.interests);
-                    return true;
-                }
-            }
-        } catch (e) {}
-        return false;
-    }
-
-    function persistSession() {
-        try {
-            localStorage.setItem('conecta2_current_user', JSON.stringify(currentUser));
-        } catch (e) {}
-    }
-
     // Elementos de pantalla
     const screens = {
+        login: document.getElementById('screen-login'),
         onboarding: document.getElementById('screen-onboarding'),
         dashboard: document.getElementById('screen-dashboard'),
         matching: document.getElementById('screen-matching'),
@@ -72,10 +47,240 @@ document.addEventListener('DOMContentLoaded', () => {
         VoiceManager.stopListening();
     }
 
-    // Inicializar sesión previa si existe
-    if (loadSavedSession()) {
-        showScreen('dashboard');
+    function persistSession() {
+        try {
+            localStorage.setItem('conecta2_current_user', JSON.stringify(currentUser));
+        } catch (e) {}
     }
+
+    function updateDashboardGreeting() {
+        const greeting = document.getElementById('user-greeting');
+        if (greeting) greeting.textContent = `Hola, ${currentUser.nombre}`;
+        const inputNombre = document.getElementById('input-nombre');
+        if (inputNombre) inputNombre.value = currentUser.nombre;
+        renderDetectedTags(currentUser.interests);
+    }
+
+    // ========================================================
+    // 0. PANTALLA: INICIO DE SESIÓN ACCESIBLE (T00, OP. 1 Y 3)
+    // ========================================================
+    let selectedLoginUser = null;
+    let enteredPin = '';
+
+    const loginUsersSection = document.getElementById('login-users-section');
+    const loginUsersGrid = document.getElementById('login-users-grid');
+    const loginPinSection = document.getElementById('login-pin-section');
+    const loginSelectedName = document.getElementById('login-selected-name');
+    const pinDots = document.querySelectorAll('#login-pin-dots .pin-dot');
+    const pinLoginError = document.getElementById('pin-login-error');
+    const btnBackToUsers = document.getElementById('btn-back-to-users');
+    const btnGotoOnboarding = document.getElementById('btn-goto-onboarding');
+    const btnBackToLogin = document.getElementById('btn-back-to-login');
+    const inputOnboardingPin = document.getElementById('input-onboarding-pin');
+    const onboardingErrorBox = document.getElementById('onboarding-error-box');
+    const btnLogout = document.getElementById('btn-logout');
+
+    function updatePinDots() {
+        pinDots.forEach((dot, index) => {
+            if (index < enteredPin.length) {
+                dot.classList.add('filled');
+            } else {
+                dot.classList.remove('filled');
+            }
+        });
+    }
+
+    async function loadUsersForLogin() {
+        if (!loginUsersGrid) return;
+        loginUsersGrid.innerHTML = '<p class="status-indicator-text">Buscando usuarios…</p>';
+        try {
+            const res = await fetch('/api/auth/users_list');
+            const data = await res.json();
+            loginUsersGrid.innerHTML = '';
+            if (data.users && data.users.length > 0) {
+                data.users.forEach(u => {
+                    const btn = document.createElement('button');
+                    btn.className = 'user-card-btn';
+                    btn.type = 'button';
+                    const mainInterest = (u.interests && u.interests.length > 0) ? `Le gusta: ${u.interests[0]}` : 'Conecta2';
+                    btn.innerHTML = `
+                        <div class="avatar-circle" aria-hidden="true">👤</div>
+                        <div class="user-card-info">
+                            <span class="user-card-name">${u.nombre}</span>
+                            <span class="user-card-tag">${mainInterest}</span>
+                        </div>
+                    `;
+                    btn.addEventListener('click', () => onUserSelectedForLogin(u));
+                    loginUsersGrid.appendChild(btn);
+                });
+            } else {
+                loginUsersGrid.innerHTML = '<p class="empty-state">No hay usuarios registrados aún. Pulsa el botón de abajo para empezar.</p>';
+            }
+        } catch (e) {
+            loginUsersGrid.innerHTML = '<p class="empty-state">No se pudo cargar la lista de usuarios.</p>';
+        }
+    }
+
+    function onUserSelectedForLogin(user) {
+        selectedLoginUser = user;
+        enteredPin = '';
+        updatePinDots();
+        if (pinLoginError) pinLoginError.style.display = 'none';
+
+        if (user.has_pin) {
+            if (loginUsersSection) loginUsersSection.style.display = 'none';
+            if (loginPinSection) loginPinSection.style.display = 'block';
+            if (loginSelectedName) loginSelectedName.textContent = user.nombre;
+            VoiceManager.speak(`Hola ${user.nombre}. Pulsa tus cuatro números secretos en la pantalla.`);
+        } else {
+            currentUser = {
+                id: user.id,
+                nombre: user.nombre,
+                interests: user.interests || []
+            };
+            persistSession();
+            updateDashboardGreeting();
+            VoiceManager.speak(`Bienvenido/a, ${currentUser.nombre}`);
+            showScreen('dashboard');
+        }
+    }
+
+    if (btnBackToUsers) {
+        btnBackToUsers.addEventListener('click', () => {
+            if (loginPinSection) loginPinSection.style.display = 'none';
+            if (loginUsersSection) loginUsersSection.style.display = 'block';
+            enteredPin = '';
+            updatePinDots();
+        });
+    }
+
+    // Teclado numérico táctil gigante (Opción 1)
+    const keypadButtons = document.querySelectorAll('.keypad-btn');
+    keypadButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const digit = btn.getAttribute('data-digit');
+            const action = btn.getAttribute('data-action');
+
+            if (digit !== null) {
+                if (enteredPin.length < 4) {
+                    enteredPin += digit;
+                    updatePinDots();
+                    if (enteredPin.length === 4) {
+                        submitPinLogin();
+                    }
+                }
+            } else if (action === 'backspace') {
+                if (enteredPin.length > 0) {
+                    enteredPin = enteredPin.slice(0, -1);
+                    updatePinDots();
+                }
+            } else if (action === 'enter') {
+                if (enteredPin.length === 4) {
+                    submitPinLogin();
+                } else {
+                    if (pinLoginError) {
+                        pinLoginError.textContent = 'Introduce los 4 números de tu PIN.';
+                        pinLoginError.style.display = 'block';
+                    }
+                }
+            }
+        });
+    });
+
+    async function submitPinLogin() {
+        if (!selectedLoginUser || enteredPin.length !== 4) return;
+        if (pinLoginError) pinLoginError.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/auth/login_pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: selectedLoginUser.id,
+                    pin: enteredPin
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                currentUser = data.user;
+                if (data.device_token) {
+                    localStorage.setItem('conecta2_device_token', data.device_token);
+                }
+                persistSession();
+                updateDashboardGreeting();
+                VoiceManager.speak(`¡Hola de nuevo, ${currentUser.nombre}!`);
+                showScreen('dashboard');
+            } else {
+                if (pinLoginError) {
+                    pinLoginError.textContent = data.message || 'Código PIN incorrecto.';
+                    pinLoginError.style.display = 'block';
+                }
+                VoiceManager.speak(data.message || 'El código PIN no es correcto.');
+                enteredPin = '';
+                updatePinDots();
+            }
+        } catch (e) {
+            if (pinLoginError) {
+                pinLoginError.textContent = 'Error de conexión. Inténtalo de nuevo.';
+                pinLoginError.style.display = 'block';
+            }
+            enteredPin = '';
+            updatePinDots();
+        }
+    }
+
+    if (btnGotoOnboarding) {
+        btnGotoOnboarding.addEventListener('click', () => {
+            if (inputNombre) inputNombre.value = '';
+            if (inputOnboardingPin) inputOnboardingPin.value = '';
+            currentUser = { id: null, nombre: 'Amigo/a', interests: ['paseos', 'música'] };
+            renderDetectedTags(currentUser.interests);
+            if (onboardingErrorBox) onboardingErrorBox.style.display = 'none';
+            showScreen('onboarding');
+        });
+    }
+
+    if (btnBackToLogin) {
+        btnBackToLogin.addEventListener('click', () => {
+            if (loginPinSection) loginPinSection.style.display = 'none';
+            if (loginUsersSection) loginUsersSection.style.display = 'block';
+            loadUsersForLogin();
+            showScreen('login');
+        });
+    }
+
+    // Inicialización inteligente: comprobar dispositivo recordado (Opción 3)
+    async function initAppSession() {
+        const token = localStorage.getItem('conecta2_device_token');
+        if (token) {
+            try {
+                const res = await fetch('/api/auth/validate_token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_token: token })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'success' && data.user) {
+                        currentUser = data.user;
+                        persistSession();
+                        updateDashboardGreeting();
+                        showScreen('dashboard');
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('No se pudo validar el token de dispositivo:', e);
+            }
+            localStorage.removeItem('conecta2_device_token');
+        }
+
+        // Si no hay sesión recordada, mostrar pantalla de inicio
+        loadUsersForLogin();
+        showScreen('login');
+    }
+
+    initAppSession();
 
     // ========================================================
     // 1. PANTALLA: ONBOARDING POR VOZ
@@ -159,39 +364,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnContinueDashboard) {
         btnContinueDashboard.addEventListener('click', async () => {
-            const nombre = inputNombre.value.trim() || 'Amigo/a';
-            currentUser.nombre = nombre;
+            const nombre = inputNombre ? inputNombre.value.trim() : '';
+            const pin = inputOnboardingPin ? inputOnboardingPin.value.trim() : '';
 
-            // Guardar o actualizar perfil en la BD (T04)
+            if (!nombre) {
+                if (onboardingErrorBox) {
+                    onboardingErrorBox.textContent = 'Por favor, escribe tu nombre o dilo con el botón de hablar.';
+                    onboardingErrorBox.style.display = 'block';
+                }
+                VoiceManager.speak('Por favor, indica tu nombre.');
+                return;
+            }
+
+            if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                if (onboardingErrorBox) {
+                    onboardingErrorBox.textContent = 'Elige un código PIN de 4 números (por ejemplo: 1234).';
+                    onboardingErrorBox.style.display = 'block';
+                }
+                VoiceManager.speak('Elige un código PIN de cuatro números.');
+                return;
+            }
+
+            if (onboardingErrorBox) onboardingErrorBox.style.display = 'none';
+
+            // Registrar nuevo usuario con PIN y token de dispositivo
             try {
-                const response = await fetch('/api/save_profile', {
+                const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        user_id: currentUser.id,
-                        nombre: currentUser.nombre,
+                        nombre: nombre,
+                        pin: pin,
                         interests: currentUser.interests
                     })
                 });
                 const resData = await response.json();
-                if (resData.user) {
-                    currentUser.id = resData.user.id;
-                    currentUser.interests = resData.user.interests;
+                if (response.ok && resData.user) {
+                    currentUser = resData.user;
+                    if (resData.device_token) {
+                        localStorage.setItem('conecta2_device_token', resData.device_token);
+                    }
                     persistSession();
+                    updateDashboardGreeting();
+                    VoiceManager.speak(`¡Bienvenido a Conecta2, ${currentUser.nombre}! Entrando al menú principal.`);
+                    showScreen('dashboard');
+                } else {
+                    if (onboardingErrorBox) {
+                        onboardingErrorBox.textContent = resData.error || 'No se pudo crear el usuario.';
+                        onboardingErrorBox.style.display = 'block';
+                    }
                 }
             } catch (e) {
-                console.error('Error al guardar perfil:', e);
+                console.error('Error al registrar usuario:', e);
             }
-
-            const greeting = document.getElementById('user-greeting');
-            if (greeting) greeting.textContent = `Hola, ${currentUser.nombre}`;
-
-            showScreen('dashboard');
         });
     }
 
     // ========================================================
-    // 2. PANTALLA: CENTRO DE MANDO (DASHBOARD)
+    // 2. PANTALLA: MENÚ PRINCIPAL (DASHBOARD)
     // ========================================================
     const btnStartCall = document.getElementById('btn-start-call');
     const btnNavInterests = document.getElementById('btn-nav-interests');
@@ -222,6 +452,29 @@ document.addEventListener('DOMContentLoaded', () => {
             openAssistantModal();
         });
     }
+
+    // Botón de salir / cambiar de usuario
+    if (btnLogout) {
+        btnLogout.addEventListener('click', async () => {
+            const token = localStorage.getItem('conecta2_device_token');
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_token: token, user_id: currentUser.id })
+                });
+            } catch (e) {}
+            localStorage.removeItem('conecta2_device_token');
+            localStorage.removeItem('conecta2_current_user');
+            currentUser = { id: null, nombre: 'Amigo/a', interests: [] };
+            if (loginPinSection) loginPinSection.style.display = 'none';
+            if (loginUsersSection) loginUsersSection.style.display = 'block';
+            loadUsersForLogin();
+            showScreen('login');
+            VoiceManager.speak('Has salido de tu cuenta.');
+        });
+    }
+
 
     // ========================================================
     // MODAL DEL CHATBOT ASISTENTE VIRTUAL

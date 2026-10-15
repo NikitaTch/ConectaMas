@@ -28,6 +28,19 @@ def create_app():
     with app.app_context():
         db.create_all()
 
+        # Migración segura en SQLite si faltan las nuevas columnas de autenticación
+        try:
+            with db.engine.connect() as conn:
+                result = conn.execute(db.text("PRAGMA table_info(users)")).fetchall()
+                existing_cols = [row[1] for row in result]
+                if 'pin_hash' not in existing_cols:
+                    conn.execute(db.text("ALTER TABLE users ADD COLUMN pin_hash VARCHAR(256)"))
+                if 'device_token' not in existing_cols:
+                    conn.execute(db.text("ALTER TABLE users ADD COLUMN device_token VARCHAR(64)"))
+                conn.commit()
+        except Exception:
+            pass
+
         # Poblar con usuarios iniciales si la tabla está vacía
         if User.query.count() == 0:
             demo_users = [
@@ -38,6 +51,7 @@ def create_app():
             ]
             for nombre, intereses in demo_users:
                 u = User(nombre=nombre)
+                u.set_pin("1234")  # PIN demo sencillo por defecto
                 db.session.add(u)
                 db.session.flush()
                 for tag in intereses:

@@ -74,7 +74,7 @@ La aplicación quedará disponible en:
 
 ### Videollamada entre dos pestañas
 1. Abre `http://localhost:5000` en una pestaña del navegador (Chrome o Edge recomendado para Web Speech API).
-2. Habla o escribe tu nombre e intereses y entra al **Centro de Mando**.
+2. Elige tu usuario (o crea uno nuevo con PIN) y entra al **Menú principal**.
 3. Abre una segunda pestaña (o ventana de incógnito) en `http://localhost:5000` e introduce otro usuario.
 4. En ambas pestañas, pulsa el botón verde gigante **"INICIAR LLAMADA"** y acepta los permisos de cámara y micrófono.
 5. Ambas pestañas se emparejarán automáticamente mediante WebRTC y compartirán vídeo y audio en directo.
@@ -82,8 +82,9 @@ La aplicación quedará disponible en:
 
 ### Ejecutar Suite de Tests Automatizados
 
-Para ejecutar las 11 pruebas unitarias (modelos, motor de matching < 3s y endpoints REST):
+Para ejecutar las 18 pruebas unitarias (modelos, autenticación PIN, motor de matching < 3s, contactos y endpoints REST):
 
 ```powershell
 & ".\.venv\Scripts\python.exe" -m pytest tests -v
 ```
+

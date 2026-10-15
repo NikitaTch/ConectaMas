@@ -4,10 +4,82 @@
 <main class="app-frame" role="main">
 
     <!-- ======================================================== -->
+    <!-- 0. PANTALLA: INICIO DE SESIÓN ACCESIBLE (T00, OP. 1 Y 3) -->
+    <!-- ======================================================== -->
+    <section id="screen-login" class="screen" aria-labelledby="login-title">
+        <div class="screen-content">
+            <header class="text-center mb-4">
+                <div class="login-brand-icon" aria-hidden="true">👋</div>
+                <h1 id="login-title" class="screen-title">¿Quién eres?</h1>
+                <p class="subtitle">Pulsa sobre tu nombre para entrar a tu cuenta:</p>
+            </header>
+
+            <!-- Sección 1: Selector visual de usuarios -->
+            <div id="login-users-section">
+                <div id="login-users-grid" class="users-cards-grid" aria-live="polite">
+                    <!-- Tarjetas de usuario renderizadas dinámicamente -->
+                </div>
+
+                <div class="new-user-card-wrapper mt-4">
+                    <button id="btn-goto-onboarding" class="giant-button bg-primary-action" type="button">
+                        <span aria-hidden="true">➕</span>
+                        <span>SOY NUEVO / CREAR MI PERFIL</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sección 2: Teclado numérico gigante para PIN (Opción 1) -->
+            <div id="login-pin-section" style="display: none;" aria-live="polite">
+                <div class="selected-user-header text-center mb-3">
+                    <button id="btn-back-to-users" class="back-nav-button float-start" type="button" aria-label="Volver a elegir persona">←</button>
+                    <div class="d-inline-block">
+                        <span class="avatar-circle-sm" aria-hidden="true">👤</span>
+                        <h2 id="login-selected-name" class="screen-title m-0">Nombre</h2>
+                        <p class="subtitle m-0">Introduce tus 4 números secretos</p>
+                    </div>
+                </div>
+
+                <!-- Visor de los 4 dígitos (puntos) -->
+                <div class="pin-display-container">
+                    <div class="pin-dots-display" id="login-pin-dots">
+                        <span class="pin-dot"></span>
+                        <span class="pin-dot"></span>
+                        <span class="pin-dot"></span>
+                        <span class="pin-dot"></span>
+                    </div>
+                </div>
+
+                <p id="pin-login-error" class="feedback-message text-center text-danger font-bold" style="display:none;" role="alert"></p>
+
+                <!-- Teclado gigante táctil -->
+                <div class="keypad-grid" role="group" aria-label="Teclado numérico táctil">
+                    <button class="keypad-btn" type="button" data-digit="1">1</button>
+                    <button class="keypad-btn" type="button" data-digit="2">2</button>
+                    <button class="keypad-btn" type="button" data-digit="3">3</button>
+                    <button class="keypad-btn" type="button" data-digit="4">4</button>
+                    <button class="keypad-btn" type="button" data-digit="5">5</button>
+                    <button class="keypad-btn" type="button" data-digit="6">6</button>
+                    <button class="keypad-btn" type="button" data-digit="7">7</button>
+                    <button class="keypad-btn" type="button" data-digit="8">8</button>
+                    <button class="keypad-btn" type="button" data-digit="9">9</button>
+                    <button class="keypad-btn keypad-btn-backspace" type="button" data-action="backspace" aria-label="Borrar número">⌫ Borrar</button>
+                    <button class="keypad-btn" type="button" data-digit="0">0</button>
+                    <button class="keypad-btn keypad-btn-enter" type="button" data-action="enter" aria-label="Confirmar PIN">➜ Entrar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
     <!-- 1. PANTALLA: PRESENTACIÓN Y ONBOARDING POR VOZ (T03, RF1) -->
     <!-- ======================================================== -->
-    <section id="screen-onboarding" class="screen active" aria-labelledby="onboarding-title">
+    <section id="screen-onboarding" class="screen" aria-labelledby="onboarding-title">
         <div class="screen-content">
+            <header class="section-nav-header mb-2">
+                <button id="btn-back-to-login" class="back-nav-button" type="button" aria-label="Volver al inicio de sesión">←</button>
+                <span class="font-bold">Crear nuevo perfil</span>
+            </header>
+
             <div class="assistant-card">
                 <div class="assistant-header">
                     <span class="assistant-icon" aria-hidden="true">👋</span>
@@ -35,11 +107,17 @@
                     <p id="voice-transcript-text" class="transcript-text"></p>
                 </div>
 
-                <!-- Formulario claro y legible para confirmar nombre e intereses -->
+                <!-- Formulario claro y legible para confirmar nombre, PIN e intereses -->
                 <div class="profile-preview-box">
                     <div class="form-group mb-3">
                         <label for="input-nombre" class="form-label font-bold">Tu nombre de pila o apodo:</label>
                         <input type="text" id="input-nombre" class="form-control giant-input" placeholder="Ej: María, Paco..." autocomplete="off">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="input-onboarding-pin" class="form-label font-bold">Elige 4 números para tu código PIN:</label>
+                        <p class="help-text m-0 mb-1">Para que solo tú puedas entrar a tus contactos (ej: 1234):</p>
+                        <input type="password" id="input-onboarding-pin" class="form-control giant-input text-center font-bold" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="letter-spacing: 10px; font-size: 28px;">
                     </div>
 
                     <div class="interests-tags-wrapper">
@@ -51,9 +129,11 @@
                     </div>
                 </div>
 
+                <p id="onboarding-error-box" class="feedback-message text-center text-danger font-bold" style="display:none;" role="alert"></p>
+
                 <!-- Botón principal para continuar -->
                 <button id="btn-continue-dashboard" class="giant-button bg-primary-action mt-4" type="button">
-                    <span>ENTRAR AL CENTRO DE MANDO</span>
+                    <span>ENTRAR AL MENÚ PRINCIPAL</span>
                     <span aria-hidden="true">➜</span>
                 </button>
             </div>
@@ -61,12 +141,12 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 2. PANTALLA: CENTRO DE MANDO (DASHBOARD) (T05)           -->
+    <!-- 2. PANTALLA: MENÚ PRINCIPAL (DASHBOARD) (T05)            -->
     <!-- ======================================================== -->
     <section id="screen-dashboard" class="screen" aria-labelledby="dashboard-title">
         <header class="dashboard-header">
             <div>
-                <h1 id="dashboard-title" class="screen-title">Centro de Mando</h1>
+                <h1 id="dashboard-title" class="screen-title">Menú principal</h1>
                 <p id="user-greeting" class="user-greeting">Bienvenido/a</p>
             </div>
             <div class="user-avatar-badge" aria-hidden="true">👤</div>
@@ -96,6 +176,12 @@
             <button id="btn-voice-help" class="giant-help-button" type="button" aria-label="Abrir Asistente de Ayuda">
                 <span aria-hidden="true">🤖</span>
                 <span>Asistente y Ayuda Inmediata</span>
+            </button>
+
+            <!-- Botón para cambiar de usuario / cerrar sesión -->
+            <button id="btn-logout" class="giant-button bg-secondary-action mt-3" type="button">
+                <span aria-hidden="true">🚪</span>
+                <span>Cambiar de persona / Salir</span>
             </button>
 
             <div id="help-message-box" class="help-message" style="display:none;" role="status" aria-live="polite"></div>
@@ -198,7 +284,7 @@
     </div>
 
     <!-- ======================================================== -->
-    <!-- MODAL DEL CHATBOT ASISTENTE DE AYUDA (CENTRO DE MANDO)   -->
+    <!-- MODAL DEL CHATBOT ASISTENTE DE AYUDA (MENÚ PRINCIPAL)    -->
     <!-- ======================================================== -->
     <div id="modal-assistant-chat" class="accessible-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="assistant-title">
         <div class="accessible-modal-dialog assistant-modal-dialog">
@@ -270,7 +356,7 @@
             </div>
 
             <button id="btn-summary-home" class="giant-button bg-primary-action mt-4" type="button">
-                <span>VOLVER AL CENTRO DE MANDO</span>
+                <span>VOLVER AL MENÚ PRINCIPAL</span>
             </button>
         </div>
     </section>
@@ -281,7 +367,7 @@
     <section id="screen-contacts" class="screen" aria-labelledby="contacts-title">
         <div class="screen-content">
             <header class="section-nav-header">
-                <button id="btn-back-contacts" class="back-nav-button" type="button" aria-label="Volver al Centro de Mando">←</button>
+                <button id="btn-back-contacts" class="back-nav-button" type="button" aria-label="Volver al Menú principal">←</button>
                 <h1 id="contacts-title" class="screen-title">Mis Contactos</h1>
             </header>
 
@@ -292,7 +378,7 @@
             </div>
 
             <button id="btn-contacts-back-dashboard" class="giant-button bg-primary-action mt-4" type="button">
-                <span>VOLVER AL CENTRO DE MANDO</span>
+                <span>VOLVER AL MENÚ PRINCIPAL</span>
             </button>
         </div>
     </section>
@@ -303,7 +389,7 @@
     <section id="screen-interests" class="screen" aria-labelledby="interests-title">
         <div class="screen-content">
             <header class="section-nav-header">
-                <button id="btn-back-interests" class="back-nav-button" type="button" aria-label="Volver al Centro de Mando">←</button>
+                <button id="btn-back-interests" class="back-nav-button" type="button" aria-label="Volver al Menú principal">←</button>
                 <h1 id="interests-title" class="screen-title">Mis Intereses</h1>
             </header>
 

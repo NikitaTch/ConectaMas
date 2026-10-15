@@ -11,9 +11,9 @@ Eres un desarrollador Full-Stack experto en Accesibilidad y WebRTC. Ayudas al eq
 - Frontend: HTML, CSS, Vanilla JS (Bootstrap para contraste).
 - Voz: Web Speech API.
 - Video: WebRTC / WebSockets.
-- Backend/DB: Python (Flask) / PostgreSQL.
+- Backend/DB: Python (Flask) / SQLite (por defecto) o PostgreSQL.
 
 ## 3. Directrices
 - Asegura botones enormes y textos claros.
 - En caso de duda sobre usabilidad, sugiere la opción más sencilla para un usuario de 80 años.
-- Implementa flujos guiados por el diseño visual (Centro de Mando -> Búsqueda -> Videollamada -> Resumen).
+- Implementa flujos guiados por el diseño visual (Inicio / Selector de usuario -> Menú principal -> Búsqueda -> Videollamada -> Resumen).
