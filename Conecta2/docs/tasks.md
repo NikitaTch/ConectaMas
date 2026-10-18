@@ -13,4 +13,4 @@
 | T08 | UI: Botones Video (Siguiente / Colgar) | T07 | Modal de confirmación al colgar funciona. |
 | T09 | UI: Fin de llamada y Guardar Contacto | T02, T08 | El usuario se guarda en la tabla `contacts`. |
 | T10 | UI: Asistente y Chatbot de ayuda inmediata | T05 | Responde dudas de uso por voz y texto. |
-| T11 | Pruebas de usabilidad y tests automatizados (End-to-End) | T09, T10 | 18 pruebas unitarias pasando al 100% en pytest. |
+| T11 | Pruebas de usabilidad y tests automatizados | T09, T10 | Las 19 pruebas automatizadas pasan en pytest. |

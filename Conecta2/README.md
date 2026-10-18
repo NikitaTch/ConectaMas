@@ -37,18 +37,29 @@ Aplicación web de videollamadas entre personas mayores con los mismos intereses
 
 ## 🚀 Puesta en Marcha
 
-### 1. Activar el entorno virtual
+Este README corresponde al backend Python de esta carpeta. El repositorio también contiene un proyecto .NET en la raíz.
 
-El proyecto incluye un entorno virtual ya preparado en `.venv`:
+### 1. Crear el entorno virtual e instalar dependencias
+
+Ejecuta los comandos desde esta carpeta.
 
 En Windows (PowerShell):
 ```powershell
+py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
-O ejecutando directamente el intérprete:
-```powershell
-& ".\.venv\Scripts\python.exe" app.py
+
+En Linux/macOS:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
+
+`requirements.txt` instala Flask y las dependencias Python de la aplicación. También incluye el cliente opcional de Gemini y el controlador PostgreSQL. `cloudflared` no se instala con `pip`: es un programa independiente de Cloudflare.
 
 ### 2. Variables de entorno (Opcional)
 
@@ -57,7 +68,10 @@ Por defecto, la aplicación utiliza SQLite (`conecta2.db`) para funcionar inmedi
 ```env
 DATABASE_URL=postgresql://usuario:contraseña@localhost:5432/conecta2
 SECRET_KEY=conecta2-super-secret-key-2026
+GEMINI_API_KEY=tu-clave-de-gemini
 ```
+
+`GEMINI_API_KEY` es opcional: sin ella, el asistente usa respuestas locales. `DATABASE_URL` también es opcional; sin ella se usa SQLite. PostgreSQL requiere además un servidor accesible.
 
 ### 3. Iniciar el servidor
 
@@ -67,6 +81,16 @@ python app.py
 
 La aplicación quedará disponible en:
 👉 **`http://localhost:5000`**
+
+### Túnel HTTPS con Cloudflare (opcional)
+
+Para que otra persona acceda desde Internet y el navegador permita cámara y micrófono, instala `cloudflared` por separado siguiendo la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/). Añade el ejecutable a `PATH`, abre una terminal nueva y comprueba `cloudflared --version`. Luego, desde esta carpeta, ejecuta:
+
+```powershell
+python lanzar_conecta2.py
+```
+
+El lanzador arranca Flask y crea un túnel temporal. No hace falta configurar Cloudflare para ejecutar la app localmente. `iniciar_tunel.bat` usa una ruta fija de Windows; se recomienda el lanzador Python, que también busca `cloudflared` en `PATH`.
 
 ---
 
@@ -82,9 +106,9 @@ La aplicación quedará disponible en:
 
 ### Ejecutar Suite de Tests Automatizados
 
-Para ejecutar las 18 pruebas unitarias (modelos, autenticación PIN, motor de matching < 3s, contactos y endpoints REST):
+Para ejecutar las 19 pruebas automatizadas (modelos, autenticación, motor de matching y API REST):
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m pytest tests -v
+python -m pytest tests -v
 ```
 

@@ -7,6 +7,15 @@ Aplicación web diseñada específicamente para personas mayores de 65 a 80+ añ
 - **Videollamadas P2P en tiempo real:** Conexión directa mediante WebRTC con señalización Socket.IO y botón de colgar con doble confirmación.
 - **Chatbot Asistente:** Resuelve dudas sobre la aplicación por voz y texto.
 
+El repositorio también contiene un proyecto .NET en la raíz. El backend Flask de Conecta2 y sus instrucciones de ejecución están en `Conecta2/`.
+
+## Tecnologías y dependencias
+
+- **Backend:** Python 3.10 o superior, Flask, Flask-SocketIO y SQLAlchemy.
+- **Base de datos:** SQLite por defecto. Para PostgreSQL, configura un servidor y define `DATABASE_URL`; el controlador de Python está incluido en `requirements.txt`.
+- **Asistente:** Funciona con respuestas locales. Para habilitar Gemini, instala las dependencias incluidas en `requirements.txt` y configura `GEMINI_API_KEY`.
+- **Túnel HTTPS opcional:** `cloudflared` es un ejecutable independiente, no una dependencia de Python. Instálalo por separado y déjalo disponible en `PATH`. Consulta la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/).
+
 ---
 
 ## 🚀 Cómo ejecutar la aplicación (Conecta2)
@@ -27,12 +36,24 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Esto instala Flask y las bibliotecas Python del proyecto en el entorno virtual. No instala `cloudflared`; ese programa solo hace falta para publicar la aplicación mediante un túnel HTTPS.
+
 ### 3. Iniciar el servidor
 ```bash
 python app.py
 ```
 La aplicación quedará disponible inmediatamente en:
 👉 **`http://localhost:5000`**
+
+### Abrir la aplicación a través de Cloudflare (opcional)
+
+Instala `cloudflared` siguiendo la guía oficial anterior y confirma que `cloudflared --version` funciona en una terminal nueva. Después, desde `Conecta2/`, ejecuta:
+
+```bash
+python lanzar_conecta2.py
+```
+
+El lanzador inicia Flask y crea un túnel temporal `trycloudflare.com`. Para usar la aplicación solo en tu equipo no necesitas Cloudflare.
 
 ---
 
@@ -48,4 +69,4 @@ Dentro de la carpeta `Conecta2`, ejecuta:
 ```bash
 pytest tests -v
 ```
-Pasa el 100% de las 19 pruebas unitarias (modelos, matching < 3s, API REST y autenticación).
+Hay 19 pruebas definidas para modelos, autenticación, matching y API REST.
