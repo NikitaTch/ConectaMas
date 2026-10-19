@@ -84,22 +84,40 @@ La aplicación quedará disponible en:
 
 ### Túnel HTTPS con Cloudflare (opcional)
 
-Para que otra persona acceda desde Internet y el navegador permita cámara y micrófono, instala `cloudflared` por separado siguiendo la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/). Añade el ejecutable a `PATH`, abre una terminal nueva y comprueba `cloudflared --version`. Luego, desde esta carpeta, ejecuta:
+Para que otra persona acceda desde Internet mediante HTTPS, instala `cloudflared` por separado siguiendo la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/). En Windows, el lanzador busca el ejecutable en las rutas habituales de instalación y luego en `PATH`; no hace falta configurar una cuenta ni instalar un certificado para el túnel rápido. La dirección `trycloudflare.com` es temporal y cambia cuando se reinicia el túnel.
+
+**Opción A: iniciar Flask y el túnel juntos.** Ejecuta esto desde esta carpeta, solo si Flask no está ya ejecutándose:
 
 ```powershell
 python lanzar_conecta2.py
 ```
 
-El lanzador arranca Flask y crea un túnel temporal. No hace falta configurar Cloudflare para ejecutar la app localmente. `iniciar_tunel.bat` usa una ruta fija de Windows; se recomienda el lanzador Python, que también busca `cloudflared` en `PATH`.
+Este lanzador arranca Flask y crea un túnel temporal. No lo ejecutes a la vez que `python app.py`: ambos intentarían usar el puerto 5000.
+
+**Opción B: exponer el Flask que ya está ejecutándose.** Deja `python app.py` abierto en una terminal y ejecuta en una segunda:
+
+```powershell
+cloudflared tunnel --url http://localhost:5000
+```
+
+Si `cloudflared` no está en `PATH`, invoca el ejecutable instalado; por ejemplo:
+
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:5000
+```
+
+Abre la dirección HTTPS mostrada por Cloudflare en ambos ordenadores y deja las dos terminales abiertas. En el mismo ordenador, `http://localhost:5000` es suficiente; desde otro equipo de la red, no uses la dirección HTTP `192.168...` para acceder a cámara y micrófono.
+
+Cloudflare proporciona HTTPS y conecta con Flask, pero no retransmite los medios de WebRTC. Esta aplicación está configurada con STUN y puede necesitar un servidor TURN si la conexión directa entre las redes no funciona.
 
 ---
 
 ## 🧪 Pruebas de la Aplicación
 
-### Videollamada entre dos pestañas
-1. Abre `http://localhost:5000` en una pestaña del navegador (Chrome o Edge recomendado para Web Speech API).
+### Videollamada entre dos pestañas u ordenadores
+1. Abre `http://localhost:5000` para una prueba en el mismo ordenador, o la dirección HTTPS `trycloudflare.com` para probar desde otro ordenador (Chrome o Edge recomendado para Web Speech API).
 2. Elige tu usuario (o crea uno nuevo con PIN) y entra al **Menú principal**.
-3. Abre una segunda pestaña (o ventana de incógnito) en `http://localhost:5000` e introduce otro usuario.
+3. Abre una segunda pestaña, o el enlace HTTPS en el otro ordenador, e introduce otro usuario.
 4. En ambas pestañas, pulsa el botón verde gigante **"INICIAR LLAMADA"** y acepta los permisos de cámara y micrófono.
 5. Ambas pestañas se emparejarán automáticamente mediante WebRTC y compartirán vídeo y audio en directo.
 6. Pulsa **"Siguiente"** para saltar de usuario o **"Colgar"** para ver el modal de doble confirmación y la pantalla de resumen para guardar el contacto.

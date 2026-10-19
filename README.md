@@ -14,7 +14,7 @@ El repositorio también contiene un proyecto .NET en la raíz. El backend Flask 
 - **Backend:** Python 3.10 o superior, Flask, Flask-SocketIO y SQLAlchemy.
 - **Base de datos:** SQLite por defecto. Para PostgreSQL, configura un servidor y define `DATABASE_URL`; el controlador de Python está incluido en `requirements.txt`.
 - **Asistente:** Funciona con respuestas locales. Para habilitar Gemini, instala las dependencias incluidas en `requirements.txt` y configura `GEMINI_API_KEY`.
-- **Túnel HTTPS opcional:** `cloudflared` es un ejecutable independiente, no una dependencia de Python. Instálalo por separado y déjalo disponible en `PATH`. Consulta la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/).
+- **Túnel HTTPS opcional:** `cloudflared` es un ejecutable independiente, no una dependencia de Python. En Windows, instala el MSI de 64 bits desde la [guía oficial de Cloudflare](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/). El lanzador busca el ejecutable en las rutas habituales de instalación y después en `PATH`.
 
 ---
 
@@ -47,13 +47,31 @@ La aplicación quedará disponible inmediatamente en:
 
 ### Abrir la aplicación a través de Cloudflare (opcional)
 
-Instala `cloudflared` siguiendo la guía oficial anterior y confirma que `cloudflared --version` funciona en una terminal nueva. Después, desde `Conecta2/`, ejecuta:
+Cloudflare proporciona una dirección HTTPS para probar desde otro ordenador y acceder a cámara y micrófono. No hace falta instalar un certificado. El túnel rápido genera una dirección temporal `trycloudflare.com`, que cambia al cerrar y volver a iniciar el túnel.
 
-```bash
+**Opción A: iniciar Flask y el túnel juntos.** Desde `Conecta2/`, con el puerto 5000 libre, ejecuta:
+
+```powershell
 python lanzar_conecta2.py
 ```
 
-El lanzador inicia Flask y crea un túnel temporal `trycloudflare.com`. Para usar la aplicación solo en tu equipo no necesitas Cloudflare.
+Este lanzador inicia ambos procesos. No lo ejecutes si `python app.py` ya está corriendo, porque intentaría iniciar un segundo servidor Flask en el mismo puerto.
+
+**Opción B: conectar el túnel a un Flask que ya está iniciado.** Mantén `python app.py` abierto en una terminal y, en una segunda terminal, ejecuta:
+
+```powershell
+cloudflared tunnel --url http://localhost:5000
+```
+
+Si Windows no reconoce `cloudflared` porque no está en `PATH`, usa la ruta del ejecutable instalado. Por ejemplo:
+
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:5000
+```
+
+Abre la dirección HTTPS que muestre `cloudflared` en ambos ordenadores y mantén Flask y el túnel ejecutándose. Para probar en el mismo ordenador, `http://localhost:5000` basta; una dirección HTTP de red local (`http://192.168...`) no sustituye al enlace HTTPS.
+
+Cloudflare proporciona el HTTPS y transporta las peticiones a Flask; no retransmite el audio o vídeo WebRTC. La aplicación usa servidores STUN públicos, pero algunas redes requieren además un servidor TURN para completar la conexión entre ordenadores.
 
 ---
 

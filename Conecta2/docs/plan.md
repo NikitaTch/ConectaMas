@@ -24,3 +24,8 @@
 - Validación de contrastes y tamaños (WCAG AAA/AA).
 - Pruebas P2P (WebRTC) en red local.
 - Pruebas unitarias automatizadas (`pytest`) con cobertura de API, modelos y autenticación.
+
+## 5. Acceso remoto para pruebas
+- `cloudflared` puede crear un túnel HTTPS temporal hacia Flask (`http://localhost:5000`) para probar desde otro ordenador y permitir el acceso a cámara y micrófono.
+- Es un ejecutable externo, no una dependencia Python. Las instrucciones para iniciar Flask y el túnel están en `README.md`.
+- El túnel proporciona HTTPS y señalización hacia Flask, pero no retransmite los medios WebRTC. Si la conexión P2P falla entre redes, puede ser necesario configurar TURN.

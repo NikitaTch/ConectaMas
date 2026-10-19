@@ -1,3 +1,4 @@
+# Cloudflare Tunnel es opcional y se instala como ejecutable externo, no con pip.
 Flask>=3.0.0
 Flask-SocketIO>=5.3.6
 Flask-SQLAlchemy>=3.1.1

@@ -2,6 +2,8 @@
 
 **Equipo Conectadores:** Nikolai Fuertes Tchobanou, Edgar Ortiz, Nil Rivera, Marc Ayala.
 
+> **Nota sobre el estado actual:** este documento describe el diseño inicial de Conecta+. La implementación de Conecta2 ha evolucionado e incluye videollamadas WebRTC y señalización Flask-SocketIO. Para ejecutar la implementación actual y exponerla temporalmente por HTTPS con Cloudflare Tunnel, consulta `Conecta2/README.md`; `cloudflared` es un ejecutable externo y no forma parte de las dependencias Python.
+
 ## 1. Visión General
 El objetivo de **Conecta+** (MVP) es desarrollar una aplicación web funcional centrada en mitigar la soledad no deseada en personas mayores (65+ años) con barreras tecnológicas. 
 
