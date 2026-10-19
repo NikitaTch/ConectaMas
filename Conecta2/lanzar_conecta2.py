@@ -90,8 +90,8 @@ def main():
     try:
         tunnel_proc = subprocess.Popen(
             cmd,
-            stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
             encoding='utf-8',
@@ -107,8 +107,8 @@ def main():
     start_time = time.time()
     
     # Leer logs de cloudflared en tiempo real hasta dar con la URL
-    while time.time() - start_time < 30:
-        line = tunnel_proc.stderr.readline()
+    while time.time() - start_time < 45:
+        line = tunnel_proc.stdout.readline()
         if not line and tunnel_proc.poll() is not None:
             break
         match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
