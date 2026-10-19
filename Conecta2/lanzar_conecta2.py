@@ -34,7 +34,25 @@ def copy_to_clipboard(text):
     except Exception:
         pass
 
+def free_port_5000():
+    if os.name == 'nt':
+        try:
+            out = subprocess.check_output('netstat -ano | findstr :5000', shell=True, text=True, errors='ignore')
+            for line in out.strip().split('\n'):
+                parts = line.strip().split()
+                if len(parts) >= 5 and 'LISTENING' in parts:
+                    pid = parts[-1]
+                    if pid and pid != '0':
+                        subprocess.run(f'taskkill /F /PID {pid}', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+        try:
+            subprocess.run('taskkill /F /IM cloudflared.exe', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
 def main():
+    free_port_5000()
     print("======================================================================", flush=True)
     print("           INICIANDO CONECTA2 + TUNEL HTTPS SEGURO           ", flush=True)
     print("======================================================================", flush=True)
